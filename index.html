@@ -1,0 +1,2305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Python Arcade: Sprite Movements &amp; Controls | Alphagen Learning</title>
+
+  <!-- Google Fonts: Poppins & Fira Code -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@500;600;700&family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- FontAwesome & Canvas Confetti CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Poppins', 'sans-serif'],
+            mono: ['Fira Code', 'monospace']
+          },
+          colors: {
+            alphagen: {
+              purple: '#5E48C4',
+              purpleDark: '#4A3AAD',
+              purpleMid: '#7B6ED4',
+              purplePale: '#EAE7FE',
+              purpleGhost: '#F5F4FF',
+              yellow: '#FFD071',
+              yellowDark: '#E6B84A',
+              yellowPale: '#FFF3CC',
+              nearBlack: '#1A1A1A',
+              darkGrey: '#404048',
+              midGrey: '#888896',
+              lightGrey: '#F2F2F4',
+              cyan: '#59E4FB',
+              cyanDark: '#055F6E',
+              cyanPale: '#E0FAFE',
+              coral: '#ED5661',
+              coralDark: '#993040',
+              coralPale: '#FFF0F1'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      margin: 0;
+      padding: 12px;
+      background-color: #0f081d;
+      font-family: 'Poppins', sans-serif;
+      color: #1A1A1A;
+      overflow-x: hidden;
+      user-select: none;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .stage-wrapper {
+      width: 100%;
+      max-width: 1280px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .slide-stage {
+      width: 1280px;
+      height: 720px;
+      margin: 0 auto;
+      position: relative;
+      overflow: hidden;
+      box-sizing: border-box;
+      background-color: #ffffff;
+      border-radius: 28px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      border: 1px solid #EAE7FE;
+      transform-origin: top center;
+    }
+
+    .slide-panel {
+      width: 1280px;
+      height: 720px;
+      padding: 72px 44px 22px 44px;
+      display: none;
+      flex-direction: column;
+      justify-content: space-between;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      box-sizing: border-box;
+      background: #ffffff;
+    }
+
+    .slide-panel.active {
+      display: flex;
+      animation: slideInSmooth 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes slideInSmooth {
+      from { opacity: 0; transform: scale(0.985) translateY(10px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .btn-interactive {
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .btn-interactive:hover {
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 10px 20px -5px rgba(94, 72, 196, 0.3);
+    }
+    .btn-interactive:active {
+      transform: translateY(1px) scale(0.98);
+    }
+
+    .nav-bar {
+      width: 1280px;
+      margin: 12px auto 8px auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 16px;
+      transform-origin: top center;
+    }
+
+    .nav-btn {
+      background: #2A1C68;
+      color: #FFD071;
+      border: 2px solid #5E48C4;
+      padding: 10px 24px;
+      border-radius: 14px;
+      font-family: 'Poppins', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+    .nav-btn:hover:not(:disabled) {
+      background: #5E48C4;
+      color: #ffffff;
+      transform: scale(1.04);
+    }
+    .nav-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+    .nav-btn.finish-btn {
+      background: #FFD071;
+      color: #1A1A1A;
+      border-color: #FFD071;
+      animation: pulseFinish 1.6s infinite alternate;
+    }
+
+    @keyframes pulseFinish {
+      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 208, 113, 0.6); }
+      100% { transform: scale(1.05); box-shadow: 0 0 16px 4px rgba(255, 208, 113, 0.4); }
+    }
+
+    .dot-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #2A1C68;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .dot-indicator.active {
+      background: #FFD071;
+      width: 20px;
+      border-radius: 10px;
+    }
+
+    .spark-wavy-underline {
+      position: relative;
+      display: inline-block;
+      color: #5E48C4;
+    }
+    .spark-wavy-underline::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: -6px;
+      width: 100%;
+      height: 12px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 4' preserveAspectRatio='none'%3E%3Cpath d='M0 2 Q 5 0, 10 2 T 20 2' fill='none' stroke='%23FFD071' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: repeat-x;
+      background-size: 20px 12px;
+    }
+
+    .quiz-option {
+      background: #ffffff;
+      border: 2px solid #EAE7FE;
+      border-radius: 14px;
+      padding: 9px 13px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #1A1A1A;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      text-align: left;
+    }
+    .quiz-option:hover {
+      border-color: #5E48C4;
+      background: #F5F4FF;
+    }
+    .quiz-option.selected-correct {
+      background: #f0fdf4 !important;
+      border-color: #22c55e !important;
+      color: #14532d !important;
+    }
+    .quiz-option.selected-wrong {
+      background: #FFF0F1 !important;
+      border-color: #ED5661 !important;
+      color: #993040 !important;
+    }
+
+    .checkbox-card {
+      background: #ffffff;
+      border: 2px solid #EAE7FE;
+      border-radius: 14px;
+      padding: 11px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .checkbox-card:hover {
+      border-color: #5E48C4;
+      background: #F5F4FF;
+    }
+    .checkbox-card.checked {
+      background: #f0fdf4;
+      border-color: #22c55e;
+    }
+    .checkbox-box {
+      width: 26px;
+      height: 26px;
+      border: 2px solid #5E48C4;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-size: 13px;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+    .checkbox-card.checked .checkbox-box {
+      background: #22c55e;
+      border-color: #22c55e;
+    }
+
+    /* Clickable / Highlightable Code Blocks */
+    .code-part-btn {
+      display: block;
+      padding: 5px 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border: 1.5px solid transparent;
+    }
+    .code-part-btn:hover {
+      background: rgba(94, 72, 196, 0.28);
+      border-color: #7B6ED4;
+    }
+    .code-part-btn.active-part {
+      background: rgba(255, 208, 113, 0.22);
+      border-color: #FFD071;
+      box-shadow: 0 0 0 1px rgba(255, 208, 113, 0.4);
+    }
+
+    /* Logic Sequencer Blocks (Slide 2) */
+    .logic-slot {
+      min-height: 38px;
+      border: 2px dotted #5E48C4;
+      border-radius: 12px;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 700;
+      color: #5E48C4;
+      padding: 6px 12px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .logic-slot.filled {
+      background: #5E48C4;
+      border: 2px solid #4A3AAD;
+      color: #ffffff;
+    }
+    .logic-slot.filled-correct {
+      background: #16a34a;
+      border: 2px solid #22c55e;
+      color: #ffffff;
+    }
+    .logic-slot.filled-wrong {
+      background: #dc2626;
+      border: 2px solid #ef4444;
+      color: #ffffff;
+    }
+
+    .logic-chip {
+      background: #1A1A1A;
+      color: #FFD071;
+      border: 2px solid #404048;
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logic-chip:hover {
+      background: #4A3AAD;
+      color: #ffffff;
+      border-color: #5E48C4;
+      transform: translateY(-2px);
+    }
+    .logic-chip.used {
+      opacity: 0.35;
+      pointer-events: none;
+    }
+
+    .key-cap {
+      background: #1e293b;
+      color: #FFD071;
+      border: 2px solid #334155;
+      box-shadow: 0 4px 0 #0f172a;
+      border-radius: 12px;
+      font-family: 'Fira Code', monospace;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.1s ease;
+      cursor: pointer;
+    }
+    .key-cap:hover {
+      border-color: #FFD071;
+      transform: translateY(-2px);
+    }
+    .key-cap:active, .key-cap.pressed {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #0f172a;
+      background: #FFD071;
+      color: #0f172a;
+    }
+  </style>
+</head>
+
+<body>
+<div class="stage-wrapper">
+
+  <!-- SINGLE TOP ALPHAGEN BRANDING BANNER -->
+  <header class="w-full bg-alphagen-purpleDark px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-white shadow-md rounded-2xl mb-3 border border-alphagen-purpleMid">
+    <div class="flex items-center gap-3">
+      <div class="bg-alphagen-yellow text-alphagen-nearBlack px-4 py-2 rounded-xl font-extrabold text-xs md:text-sm shadow-sm flex items-center gap-2">
+        <span class="tracking-wide">ALPHAGEN LEARNING</span>
+      </div>
+      <span class="font-extrabold text-base md:text-lg tracking-tight text-white">
+        Python Arcade: Sprite Movements &amp; Player Controls
+      </span>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button onclick="toggleAudio()" id="top-audio-btn" class="bg-alphagen-purple hover:bg-alphagen-purpleMid text-white p-2 rounded-lg transition-all" title="Toggle Sound">
+        <i class="fa-solid fa-volume-high text-base" id="sound-icon"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- 1280x720 FIXED PRESENTATION STAGE -->
+  <div class="slide-stage">
+
+    <!-- Header Navigation Bar inside Stage -->
+    <header class="w-full bg-white border-b border-alphagen-purplePale px-6 py-2.5 flex items-center justify-between relative z-50">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-alphagen-purple flex items-center justify-center text-white text-xl shadow-md shadow-alphagen-purple/20">
+          <i class="fa-solid fa-person-running"></i>
+        </div>
+        <div>
+          <h1 class="font-extrabold text-base text-alphagen-purple tracking-tight">Python Arcade — Sprite Motion &amp; Keys</h1>
+          <p class="text-xs font-semibold text-alphagen-yellowDark">Dino Run Project &bull; Session 3</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5" id="header-dots-container"></div>
+
+      <div class="flex items-center gap-3">
+        <span id="slide-counter-pill" class="text-xs font-bold text-alphagen-purple bg-alphagen-purpleGhost px-3.5 py-1.5 rounded-full border border-alphagen-purplePale">
+          Slide 1 / 17
+        </span>
+
+        <select id="slide-dropdown" onchange="goToSlide(parseInt(this.value))" class="text-xs font-bold text-alphagen-nearBlack bg-alphagen-lightGrey hover:bg-slate-200 border border-slate-200 px-3 py-1.5 rounded-xl cursor-pointer focus:outline-none focus:border-alphagen-purple transition">
+          <option value="1">1. Welcome Screen</option>
+          <option value="2">2. Screen Wrapping Logic Recap</option>
+          <option value="3">3. Completed vs Today's Agenda</option>
+          <option value="4">4. What Do We Need to Move a Sprite?</option>
+          <option value="5">5. Understanding delta_time</option>
+          <option value="6">6. Brainstorming Dino Run Movements</option>
+          <option value="7">7. Moving the Cloud Sprite (Lab)</option>
+          <option value="8">8. Coding Challenge 1: Cloud</option>
+          <option value="9">9. Moving the Ground Sprite (Lab)</option>
+          <option value="10">10. Coding Challenge 2: Ground</option>
+          <option value="11">11. Moving &amp; Respawning Obstacles (Lab)</option>
+          <option value="12">12. Coding Challenge 3: Obstacle</option>
+          <option value="13">13. Keyboard Events &amp; Keys</option>
+          <option value="14">14. Practice: Left &amp; Right Movement (Lab)</option>
+          <option value="15">15. Coding Challenge 4: Left &amp; Right</option>
+          <option value="16">16. Making the Dinosaur Jump! (Lab)</option>
+          <option value="17">17. Coding Challenge 5: Jump &amp; Gravity</option>
+          <option value="18">18. Logic Knowledge Check &amp; Celebrate!</option>
+        </select>
+
+        <button onclick="toggleAudio()" id="audio-btn" class="w-9 h-9 rounded-xl bg-alphagen-purpleGhost hover:bg-alphagen-purplePale text-alphagen-purple border border-alphagen-purplePale flex items-center justify-center text-sm transition btn-interactive" title="Toggle Sound">
+          <i class="fa-solid fa-volume-high"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- ================= SLIDE 1: WELCOME SCREEN ================= -->
+    <div id="slide-1" class="slide-panel active justify-center items-center text-center">
+      <div class="inline-flex items-center gap-2 bg-alphagen-purpleGhost border-2 border-alphagen-purplePale text-alphagen-purple text-sm font-extrabold px-6 py-2.5 rounded-full mb-5 tracking-wider uppercase">
+        <i class="fa-solid fa-gamepad text-alphagen-yellowDark"></i> PYTHON ARCADE &bull; DINO RUN
+      </div>
+
+      <h1 class="text-5xl md:text-6xl font-extrabold text-alphagen-nearBlack mb-10 tracking-tight leading-tight max-w-4xl">
+        Creating <span class="spark-wavy-underline">Sprite Movements</span> &amp; Controls!
+      </h1>
+
+      <button onclick="nextSlide(); playSound('pop')" class="bg-alphagen-yellow hover:bg-alphagen-yellowDark text-alphagen-nearBlack font-extrabold text-xl px-12 py-5 rounded-2xl shadow-xl btn-interactive flex items-center gap-3">
+        <span>Start Lesson</span>
+        <i class="fa-solid fa-arrow-right"></i>
+      </button>
+    </div>
+
+    <!-- ================= SLIDE 2: CONCEPT RECAP (LOGIC-BASED SCREEN WRAPPING) ================= -->
+    <div id="slide-2" class="slide-panel bg-white justify-between">
+      <div>
+        <span class="text-xs uppercase font-extrabold tracking-wider text-alphagen-purple bg-alphagen-purpleGhost px-3.5 py-1 rounded-md border border-alphagen-purplePale">Logic Recap</span>
+        <h2 class="text-2xl font-extrabold text-alphagen-purple mt-1">Screen Coordinates &amp; Wrapping Logic</h2>
+      
+      </div>
+
+      <div class="grid grid-cols-12 gap-5 my-auto items-stretch">
+        <!-- LEFT 6 COLS: Interactive Annotated Window -->
+        <div class="col-span-6 bg-slate-900 border-2 border-slate-800 rounded-3xl p-4 text-white flex flex-col justify-between shadow-lg">
+          <div class="flex items-center justify-between text-xs font-mono">
+            <span class="text-alphagen-cyan font-bold"><i class="fa-solid fa-desktop mr-1"></i> SCREEN SIZE: 700 &times; 250</span>
+            <span id="recap-pos-badge" class="bg-slate-950 text-alphagen-yellow px-3 py-1 rounded-full border border-slate-700">x = 600, y = 160</span>
+          </div>
+
+          <!-- Annotated Viewport -->
+          <div id="recap-viewport" class="w-full h-[255px] rounded-2xl border-2 border-slate-700 relative overflow-hidden my-auto" style="background-color: rgb(240, 240, 240);">
+            <div class="absolute inset-0 opacity-20" style="background-image: linear-gradient(#94a3b8 1px, transparent 1px), linear-gradient(90deg, #94a3b8 1px, transparent 1px); background-size: 25px 25px;"></div>
+
+            <!-- Width Annotation (Top) -->
+            <div class="absolute top-2 left-3 right-3 flex items-center justify-between text-[10px] font-mono font-bold text-alphagen-purple bg-white/90 px-2.5 py-0.5 rounded border border-alphagen-purplePale">
+              <span>Left Edge: x = 0</span>
+              <span>WIDTH = 700 px</span>
+              <span>Right Edge: x = WIDTH</span>
+            </div>
+
+            <!-- Height Annotation (Left side) -->
+            <div class="absolute left-2 top-10 bottom-3 flex flex-col justify-between text-[10px] font-mono font-bold text-emerald-700 bg-white/90 px-1.5 py-1 rounded border border-emerald-200">
+              <span>y=250</span>
+              <span>HEIGHT</span>
+              <span>y=0</span>
+            </div>
+
+            <!-- Moving Sprite -->
+            <div id="recap-moving-sprite" class="absolute flex flex-col items-center select-none" style="left: 480px; top: 95px;">
+              <span class="text-[10px] font-mono font-extrabold bg-alphagen-nearBlack text-alphagen-yellow px-2 py-0.5 rounded mb-1 shadow">(x, y)</span>
+              <div class="text-3xl">☁️</div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between text-xs">
+           
+            <button onclick="toggleRecapAnim()" id="recap-pause-btn" class="bg-slate-800 hover:bg-slate-700 text-alphagen-yellow font-bold px-3 py-1 rounded-lg text-xs cursor-pointer">
+              Pause / Play
+            </button>
+          </div>
+        </div>
+
+        <!-- RIGHT 6 COLS: Scrambled Logic Blocks Sequencer -->
+        <div class="col-span-6 bg-alphagen-purpleGhost border-2 border-alphagen-purplePale rounded-3xl p-4 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-xs font-extrabold text-alphagen-purple uppercase"><i class="fa-solid fa-puzzle-piece mr-1"></i> Build the Wrapping Logic</span>
+              <button onclick="resetRecapLogic()" class="text-[11px] bg-white hover:bg-alphagen-purplePale text-alphagen-purple border border-alphagen-purplePale px-2.5 py-1 rounded-lg font-bold cursor-pointer">Reset ↺</button>
+            </div>
+           
+
+            <!-- 2 Target Slots -->
+            <div class="space-y-2 mb-3">
+              <div id="logic-slot-1" onclick="clearLogicSlot(1)" class="logic-slot">
+                <span>1. Condition: Click a block below...</span>
+                <span class="text-[10px] opacity-70">IF condition</span>
+              </div>
+              <div id="logic-slot-2" onclick="clearLogicSlot(2)" class="logic-slot">
+                <span>2. Action: Click a block below...</span>
+                <span class="text-[10px] opacity-70">THEN action</span>
+              </div>
+            </div>
+
+            <!-- Scrambled Logic Chips -->
+            <div id="logic-chip-pool" class="space-y-1.5"></div>
+          </div>
+
+          <div class="space-y-2 mt-2">
+            <button onclick="checkRecapLogic()" class="w-full bg-alphagen-yellow hover:bg-alphagen-yellowDark text-alphagen-nearBlack font-extrabold text-xs py-2.5 rounded-xl btn-interactive shadow-xs">
+              Check Logic Order ✓
+            </button>
+            
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SLIDE 3: COMPLETED VS TODAY'S AGENDA ================= -->
+    <div id="slide-3" class="slide-panel bg-white justify-between">
+      <div>
+        <span class="text-xs uppercase font-extrabold tracking-wider text-alphagen-purple bg-alphagen-purpleGhost px-4 py-1.5 rounded-md border border-alphagen-purplePale">Project Roadmap</span>
+        <h2 class="text-3xl font-extrabold text-alphagen-purple mt-2">Where We Are in Dino Run</h2>
+      </div>
+
+      <div class="grid grid-cols-12 gap-8 my-auto items-stretch">
+        <div class="col-span-6 bg-emerald-50 border-2 border-emerald-200 rounded-3xl p-6 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-3 mb-5">
+              <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-lg shadow-sm">
+                <i class="fa-solid fa-check-double"></i>
+              </div>
+              <div>
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-emerald-700">Already Completed</span>
+                <h3 class="font-extrabold text-lg text-alphagen-nearBlack">Last Session Milestones</h3>
+              </div>
+            </div>
+
+            <ul class="space-y-3.5 text-sm text-alphagen-nearBlack font-semibold">
+              <li class="flex items-center gap-3 bg-white p-4 rounded-2xl border border-emerald-200 shadow-xs">
+                <i class="fa-solid fa-circle-check text-emerald-600 text-lg shrink-0"></i>
+                <span>Created the <strong>Dino Run</strong> window &amp; on-screen text</span>
+              </li>
+              <li class="flex items-center gap-3 bg-white p-4 rounded-2xl border border-emerald-200 shadow-xs">
+                <i class="fa-solid fa-circle-check text-emerald-600 text-lg shrink-0"></i>
+                <span>Learned OOP inheritance with <code class="font-mono text-xs text-emerald-700">arcade.Sprite</code></span>
+              </li>
+              <li class="flex items-center gap-3 bg-white p-4 rounded-2xl border border-emerald-200 shadow-xs">
+                <i class="fa-solid fa-circle-check text-emerald-600 text-lg shrink-0"></i>
+                <span>Added static sprites: <strong>Dinosaur</strong>, <strong>Cactus</strong>, <strong>Cloud</strong> &amp; <strong>Ground</strong></span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="col-span-6 bg-alphagen-yellowPale border-2 border-alphagen-yellowDark/60 rounded-3xl p-6 text-alphagen-nearBlack flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-3 mb-5">
+              <div class="w-10 h-10 rounded-xl bg-alphagen-yellowDark text-alphagen-nearBlack flex items-center justify-center text-lg shadow-sm">
+                <i class="fa-solid fa-bullseye"></i>
+              </div>
+              <div>
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-amber-800">Today's Agenda</span>
+                <h3 class="font-extrabold text-lg text-alphagen-nearBlack">What We Will Build Today</h3>
+              </div>
+            </div>
+
+            <div class="space-y-4 text-sm font-bold">
+              <div class="p-5 bg-white rounded-2xl border border-alphagen-yellowDark/50 flex items-center gap-4 shadow-xs">
+                <div class="w-9 h-9 rounded-xl bg-alphagen-purple text-white flex items-center justify-center font-extrabold shrink-0">1</div>
+                <span>Learn about sprite movements (Cloud, Ground &amp; Obstacles)</span>
+              </div>
+
+              <div class="p-5 bg-white rounded-2xl border border-alphagen-yellowDark/50 flex items-center gap-4 shadow-xs">
+                <div class="w-9 h-9 rounded-xl bg-alphagen-cyanDark text-white flex items-center justify-center font-extrabold shrink-0">2</div>
+                <span>Add keyboard controls to move &amp; jump the Dinosaur sprite</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SLIDE 4: WHAT DO WE NEED TO MOVE A SPRITE? (FOUNDATIONAL CONCEPTS, NO CODE RIGHT AWAY) ================= -->
+    <div id="slide-4" class="slide-panel bg-white justify-between">
+      <div>
+        <span class="text-xs uppercase font-extrabold tracking-wider text-alphagen-purple bg-alphagen-purpleGhost px-3.5 py-1 rounded-md border border-alphagen-purplePale">Movement Foundations</span>
+        <h2 class="text-3xl font-extrabold text-alphagen-nearBlack mt-1.5">What Values Do We Need to Move a Sprite?</h2>
+      
+      </div>
+
+      <div class="grid grid-cols-12 gap-6 my-auto items-stretch">
+        <!-- LEFT 5 COLS: Clickable Options -->
+        <div class="col-span-5 bg-alphagen-purpleGhost border-2 border-alphagen-purplePale p-5 rounded-3xl flex flex-col justify-between">
+          <div class="space-y-2.5">
+            <span class="text-xs font-extrabold uppercase tracking-wider text-alphagen-purple">Select the Required Values:</span>
+
+            <button onclick="selectMoveReq(this, 'position', true)" class="quiz-option text-sm py-3.5 w-full">
+              <span><i class="fa-solid fa-location-crosshairs text-alphagen-purple mr-2"></i> Position (X and Y coordinates)</span>
+              <i class="fa-regular fa-circle text-alphagen-purple"></i>
+            </button>
+
+            <button onclick="selectMoveReq(this, 'speed', true)" class="quiz-option text-sm py-3.5 w-full">
+              <span><i class="fa-solid fa-gauge-high text-alphagen-purple mr-2"></i> Speed (Velocity in X and Y)</span>
+              <i class="fa-regular fa-circle text-alphagen-purple"></i>
+            </button>
+
+            <button onclick="selectMoveReq(this, 'color', false)" class="quiz-option text-sm py-3.5 w-full">
+              <span><i class="fa-solid fa-palette text-slate-400 mr-2"></i> Background RGB Color</span>
+              <i class="fa-regular fa-circle text-alphagen-purple"></i>
+            </button>
+
+            <button onclick="selectMoveReq(this, 'font', false)" class="quiz-option text-sm py-3.5 w-full">
+              <span><i class="fa-solid fa-font text-slate-400 mr-2"></i> Title Font Size</span>
+              <i class="fa-regular fa-circle text-alphagen-purple"></i>
+            </button>
+          </div>
+
+         
+        </div>
+
+        <!-- RIGHT 7 COLS: Foundational Concept Cards (No Full Code Block) -->
+        <div class="col-span-7 bg-alphagen-purpleGhost border-2 border-alphagen-purplePale p-5 rounded-3xl flex flex-col justify-between space-y-3">
+          <div class="flex items-center justify-between border-b border-alphagen-purplePale pb-2">
+            <span class="text-xs font-extrabold text-alphagen-purple uppercase"><i class="fa-solid fa-lightbulb mr-1"></i> Sprite Attributes &amp; Method Foundations</span>
+            <span id="move-code-badge" class="text-[11px] font-bold bg-white text-alphagen-purple px-3 py-1 rounded-full border border-alphagen-purplePale">0 / 2 Revealed</span>
+          </div>
+
+          <div id="concept-reveal-pos" class="bg-white border-2 border-alphagen-purplePale p-4 rounded-2xl transition-all duration-300 opacity-35 space-y-1">
+            <div class="flex items-center gap-2 text-alphagen-purple font-extrabold text-sm">
+              <i class="fa-solid fa-location-dot"></i>
+              <span>1. Position Attributes (Already in Your Code!)</span>
+            </div>
+            <p class="text-xs text-alphagen-darkGrey leading-relaxed">
+              We already have the position attributes <code class="font-mono font-bold text-alphagen-purple">self.center_x</code> (horizontal) and <code class="font-mono font-bold text-alphagen-purple">self.bottom</code> / <code class="font-mono font-bold text-alphagen-purple">self.center_y</code> (vertical) in our sprite classes!
+            </p>
+          </div>
+
+          <div id="concept-reveal-speed" class="bg-white border-2 border-alphagen-purplePale p-4 rounded-2xl transition-all duration-300 opacity-35 space-y-1">
+            <div class="flex items-center gap-2 text-amber-700 font-extrabold text-sm">
+              <i class="fa-solid fa-bolt"></i>
+              <span>2. Speed Attributes (<code class="font-mono">velocity_x</code> &amp; <code class="font-mono">velocity_y</code>)</span>
+            </div>
+            <p class="text-xs text-alphagen-darkGrey leading-relaxed">
+              To move a sprite, we add <code class="font-mono font-bold text-alphagen-purple">self.velocity_x</code> (for left/right speed) and <code class="font-mono font-bold text-alphagen-purple">self.velocity_y</code> (for up/down jump speed) as attributes!
+            </p>
+          </div>
+
+          <div class="bg-alphagen-yellowPale border border-alphagen-yellowDark/70 p-3.5 rounded-2xl flex items-center gap-3 text-xs font-bold text-alphagen-nearBlack">
+            <div class="w-8 h-8 rounded-xl bg-alphagen-yellowDark text-alphagen-nearBlack flex items-center justify-center shrink-0">
+              <i class="fa-solid fa-gears"></i>
+            </div>
+            <span>All sprite movement logic is organized inside a method named <code class="font-mono text-alphagen-purple font-extrabold">move()</code>!</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SLIDE 5: UNDERSTANDING DELTA_TIME (BULLET POINTERS + SIMULATION) ================= -->
+    <div id="slide-5" class="slide-panel bg-white justify-between">
+      <div>
+        <span class="text-xs uppercase font-extrabold tracking-wider text-alphagen-purple bg-alphagen-purpleGhost px-3.5 py-1 rounded-md border border-alphagen-purplePale">Core Game Loop Concept</span>
+        <h2 class="text-3xl font-extrabold text-alphagen-nearBlack mt-1.5">What is <code class="font-mono text-alphagen-purple">delta_time</code> &amp; Why Do We Use It?</h2>
+      </div>
+
+      <div class="grid grid-cols-12 gap-6 my-auto items-stretch">
+        <!-- LEFT 6 COLS: Easy-to-Read Pointers -->
+        <div class="col-span-6 flex flex-col justify-between space-y-3.5">
+          <div class="bg-alphagen-purpleGhost border-2 border-alphagen-purplePale p-4 rounded-3xl space-y-2">
+            <div class="flex items-center gap-2.5">
+              <div class="w-9 h-9 rounded-xl bg-alphagen-purple text-white flex items-center justify-center text-base shadow-sm">
+                <i class="fa-solid fa-stopwatch"></i>
+              </div>
+              <h3 class="text-base font-extrabold text-alphagen-nearBlack">1. What is <code class="font-mono text-alphagen-purple">delta_time</code>?</h3>
+            </div>
+            <ul class="space-y-1.5 text-xs text-alphagen-darkGrey font-medium pl-1">
+              <li class="flex items-start gap-2 bg-white p-2.5 rounded-xl border border-alphagen-purplePale">
+                <i class="fa-solid fa-circle-check text-alphagen-purple mt-0.5"></i>
+                <span>It is the exact time (in seconds) between the previous frame and the current frame.</span>
+              </li>
+              <li class="flex items-start gap-2 bg-white p-2.5 rounded-xl border border-alphagen-purplePale">
+                <i class="fa-solid fa-circle-check text-alphagen-purple mt-0.5"></i>
+                <span>At 60 frames per second (FPS), <code class="font-mono font-bold text-alphagen-purple">delta_time</code> is about <code class="font-mono font-bold">0.016</code> seconds.</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="bg-alphagen-cyanPale border-2 border-alphagen-cyan p-4 rounded-3xl space-y-2">
+            <div class="flex items-center gap-2.5">
+              <div class="w-9 h-9 rounded-xl bg-alphagen-cyanDark text-white flex items-center justify-center text-base shadow-sm">
+                <i class="fa-solid fa-gauge"></i>
+              </div>
+              <h3 class="text-base font-extrabold text-alphagen-nearBlack">2. Why Do We Use It in Our Code?</h3>
+            </div>
+            <ul class="space-y-1.5 text-xs text-alphagen-darkGrey font-medium pl-1">
+              <li class="flex items-start gap-2 bg-white p-2.5 rounded-xl border border-alphagen-cyan">
+                <i class="fa-solid fa-circle-check text-alphagen-cyanDark mt-0.5"></i>
+                <span>Different computers run games at different frame rates (fast vs. slow laptops).</span>
+              </li>
+              <li class="flex items-start gap-2 bg-white p-2.5 rounded-xl border border-alphagen-cyan">
+                <i class="fa-solid fa-circle-check text-alphagen-cyanDark mt-0.5"></i>
+                <span>Multiplying <code class="font-mono font-bold text-alphagen-cyanDark">speed * delta_time</code> keeps our Dinosaur, Cloud, and Cactus moving at the <strong>exact same speed</strong> on every device!</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- RIGHT 6 COLS: Interactive Formula & Comparison Demo -->
+        <div class="col-span-6 bg-alphagen-nearBlack text-white p-5 rounded-3xl border-2 border-slate-800 flex flex-col justify-between shadow-xl">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-extrabold text-alphagen-yellow uppercase"><i class="fa-solid fa-calculator mr-1"></i> Distance = Speed &times; delta_time</span>
+            <span class="text-xs font-mono text-alphagen-cyan">Consistent Speed</span>
+          </div>
+
+          <div class="bg-slate-950 border border-slate-800 p-4 rounded-2xl space-y-4 my-auto">
+            <div>
+              <div class="flex justify-between text-xs font-bold mb-1">
+                <span class="text-emerald-400">Fast Computer (60 FPS &rarr; delta_time = 0.016s)</span>
+                <span class="font-mono text-slate-400">240 px/sec</span>
+              </div>
+              <div class="w-full h-7 bg-slate-900 rounded-xl border border-slate-800 relative overflow-hidden flex items-center px-2">
+                <div id="dt-runner-fast" class="text-lg absolute" style="left: 10px;">🦖</div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs font-bold mb-1">
+                <span class="text-alphagen-yellow">Slower Computer (30 FPS &rarr; delta_time = 0.033s)</span>
+                <span class="font-mono text-slate-400">240 px/sec</span>
+              </div>
+              <div class="w-full h-7 bg-slate-900 rounded-xl border border-slate-800 relative overflow-hidden flex items-center px-2">
+                <div id="dt-runner-slow" class="text-lg absolute" style="left: 10px;">🦖</div>
+              </div>
+            </div>
+
+            <p class="text-xs text-center text-emerald-300 font-bold">
+              Both dinosaurs reach the finish line at the exact same moment!
+            </p>
+          </div>
+
+          
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SLIDE 6: BRAINSTORMING DINO RUN SPRITE MOVEMENTS ================= -->
+    <div id="slide-6" class="slide-panel bg-white justify-between">
+      <div>
+        <span class="text-xs uppercase font-extrabold tracking-wider text-alphagen-purple bg-alphagen-purpleGhost px-3.5 py-1 rounded-md border border-alphagen-purplePale">Movement Planning</span>
+        <h2 class="text-2xl font-extrabold text-alphagen-nearBlack mt-1">How Does Each Sprite Move in Dino Run?</h2>
+       
+      </div>
+
+      <div class="grid grid-cols-2 gap-4 my-auto">
+        <!-- 1. Cloud Movement -->
+        <div class="bg-alphagen-purpleGhost border-2 border-alphagen-purplePale p-3.5 rounded-2xl flex flex-col justify-between space-y-2">
+          <span class="font-extrabold text-sm text-alphagen-nearBlack">1. ☁️ Cloud: Which way does it move &amp; does its height change?</span>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="revealBrainstorm('cloud', true, this)" class="quiz-option text-xs py-2">
+              <span>Right &rarr; Left + Random Y</span>
+              <i class="fa-regular fa-circle text-alphagen-purple"></i>
+            </button>
+            <button onclick="revealBrainstorm('cloud', false, this)" class="quiz-option text-xs py-2">
+              <span>Left &rarr; Right + Fixed Y</span>
+              <i class="fa-regular fa-circle text-alphagen-purple"></i>
+            </button>
+          </div>
+          <div id="bs-cloud-info" class="hidden bg-white border border-emerald-300 p-2.5 rounded-xl text-[11px] text-alphagen-darkGrey font-semibold space-y-0.5">
+            <div>&bull; Moves <strong>Right &rarr; Left</strong> across the sky (<code class="font-mono text-alphagen-purple">center_x</code> decreases).</div>
+            <div>&bull; When it exits the left edge, it respawns on the right at a <strong>random Y height</strong> (<code class="font-mono">170</code> to <code class="font-mono">210</code>) so clouds appear at varied heights!</div>
+          </div>
+        </div>
+
+        <!-- 2. Ground Movement -->
+        <div class="bg-alphagen-purpleGhost border-2 border-alphagen-purplePale p-3.5 rounded-2xl flex flex-col justify-between space-y-2">
+          <span class="font-extrabold text-sm text-alphagen-nearBlack">2. 🛤️ Ground: Which direction does the track scroll?</span>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="revealBrainstorm('ground', false, this)" class="quiz-option text-xs py-2">
+              <span>Left &rarr; Right</span>
+              <i class="fa-regular fa-circle text-alphagen-purple"></i>
+            </button>
+            <button onclick="revealBrainstorm('ground', true, this)" class="quiz-option text-xs py-2">
+              <span>Right &rarr; Left (Seamless loop)</span>
+              <i class="fa-regular fa-circle text-alphagen-purple"></i>
+            </button>
+          </div>
+          <div id="bs-ground-info" class="hidden bg-white border border-emerald-300 p-2.5 rounded-xl text-[11px] text-alphagen-darkGrey font-semibold">
+            &bull; Scrolls <strong>Right &rarr; Left</strong> at <code class="font-mono text-alphagen-purple">game_speed</code> and leaps forward by <code class="font-mono">WIDTH * 2</code> so the ground never ends!
+          </div>
+        </div>
+
+        <!-- 3. Obstacle Movement -->
+        <div class="bg-alphagen-purpleGhost border-2 border-alphagen-purplePale p-3.5 rounded-2xl flex flex-col justify-between space-y-2">
+          <span class="font-extrabold text-sm text-alphagen-nearBlack">3. 🌵 Obstacle: How does it move &amp; does the cactus change?</span>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="revealBrainstorm('obstacle', true, this)" class="quiz-option text-xs py-2">
+              <span>Right &rarr; Left + Random Cacti</span>
+              <i class="fa-regular fa-circle text-alphagen-purple"></i>
+            </button>
+            <button onclick="revealBrainstorm('obstacle', false, this)" class="quiz-option text-xs py-2">
+              <span>Stays Still in Center</span>
+              <i class="fa-regular fa-circle text-alphagen-purple"></i>
+            </button>
+          </div>
+          <div id="bs-obstacle-info" class="hidden bg-white border border-emerald-300 p-2.5 rounded-xl text-[11px] text-alphagen-darkGrey font-semibold space-y-0.5">
+            <div>&bull; Moves <strong>Right &rarr; Left</strong> toward the Dinosaur.</div>
+            <div>&bull; Once off-screen, it is deleted and a <strong>new random cactus</strong> (big or small) spawns on the right!</div>
+          </div>
+        </div>
+
+        <!-- 4. Dinosaur Movement -->
+        <div class="bg-alphagen-purpleGhost border-2 border-alphagen-purplePale p-3.5 rounded-2xl flex flex-col justify-between space-y-2">
+          <span class="font-extrabold text-sm text-alphagen-nearBlack">4. 🦖 Dinosaur: How does our hero move?</span>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="revealBrainstorm('dino', false, this)" class="quiz-option text-xs py-2">
+              <span>Scrolls off the left edge</span>
+              <i class="fa-regular fa-circle text-alphagen-purple"></i>
+            </button>
+            <button onclick="revealBrainstorm('dino', true, this)" class="quiz-option text-xs py-2">
+              <span>Jumps &amp; moves with Keys</span>
+              <i class="fa-regular fa-circle text-alphagen-purple"></i>
+            </button>
+          </div>
+          <div id="bs-dino-info" class="hidden bg-white border border-emerald-300 p-2.5 rounded-xl text-[11px] text-alphagen-darkGrey font-semibold">
+            &bull; Controlled by <strong>keyboard keys</strong>—jumping upward against gravity (and practicing left/right movement)!
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SLIDE 7: MOVING THE CLOUD SPRITE (LAB) ================= -->
+    <div id="slide-7" class="slide-panel bg-white justify-between">
+      <div>
+        <span class="text-xs uppercase font-extrabold tracking-wider text-alphagen-purple bg-alphagen-purpleGhost px-3.5 py-1 rounded-md border border-alphagen-purplePale">Sprite Motion 1</span>
+        <h2 class="text-2xl font-extrabold text-alphagen-nearBlack mt-1">Moving the Cloud Sprite &amp; Adjusting Speed</h2>
+       
+      </div>
+
+      <div class="grid grid-cols-12 gap-5 my-auto items-stretch">
+        <div class="col-span-6 bg-alphagen-nearBlack text-white p-4 rounded-3xl border-2 border-slate-800 flex flex-col justify-between shadow-xl">
+          <div class="bg-slate-950 border border-slate-800 p-3 rounded-2xl font-mono text-[11.5px] leading-relaxed space-y-1">
+            <div class="text-pink-400">class <span class="text-alphagen-yellow font-bold">Cloud</span>(arcade.Sprite):</div>
+            <div class="pl-4 text-slate-400"># ... __init__ sets width=70, height=40, center=(600, 190)</div>
+
+            <div onclick="explainCloudPart('left', this)" class="code-part-btn pl-4 active-part">
+              <div class="text-emerald-400 font-bold">def move(self, delta_time):</div>
+              <div class="pl-4 text-alphagen-cyan font-bold">self.center_x -= <span id="cloud-code-speed" class="text-alphagen-yellow underline">60</span> * delta_time</div>
+            </div>
+
+            <div onclick="explainCloudPart('wrap', this)" class="code-part-btn pl-8">
+              <div class="text-pink-400">if <span class="text-white">self.right &lt; 0:</span></div>
+              <div class="pl-4 text-slate-200">self.left = WIDTH</div>
+              <div class="pl-4 text-alphagen-yellow font-bold">self.center_y = random.randint(170, 210)</div>
+            </div>
+
+            <div onclick="explainCloudPart('update', this)" class="code-part-btn pt-1">
+              <div class="text-alphagen-yellow">@window.event</div>
+              <div class="text-emerald-400 font-bold">def on_update(delta_time):</div>
+              <div class="pl-4 text-alphagen-cyan font-bold">cloud.move(delta_time)</div>
+            </div>
+          </div>
+
+          <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex items-center justify-between gap-3 mt-2.5 text-xs">
+            <label class="font-extrabold text-alphagen-yellow whitespace-nowrap">Cloud Speed:</label>
+            <input id="cloud-speed-slider" type="range" min="20" max="260" value="60" oninput="updateCloudSimSpeed()" class="flex-grow accent-alphagen-yellow">
+            <span id="cloud-speed-val" class="font-mono font-bold text-alphagen-cyan w-16 text-right">60 px/s</span>
+          </div>
+        </div>
+
+        <div class="col-span-6 flex flex-col justify-between space-y-3">
+          <div class="bg-slate-900 border-2 border-slate-800 rounded-3xl p-4 text-white flex flex-col justify-between">
+            <div class="flex justify-between items-center text-xs font-mono mb-2">
+              <span class="text-alphagen-cyan font-bold"><i class="fa-solid fa-cloud mr-1"></i> LIVE CLOUD SIMULATION</span>
+              <span id="cloud-live-coords" class="text-alphagen-yellow">center_x: 600 | center_y: 190</span>
+            </div>
+
+            <div class="w-full h-[145px] rounded-2xl border-2 border-slate-700 relative overflow-hidden" style="background-color: rgb(240, 240, 240);">
+              <div id="sim-cloud-sprite" class="absolute flex flex-col items-center select-none" style="left: 480px; top: 24px;">
+                <span class="text-[9px] font-mono font-bold bg-alphagen-purple text-white px-1.5 rounded mb-0.5" id="sim-cloud-tag">y=190</span>
+                <div class="text-3xl">☁️</div>
+              </div>
+              <div class="absolute bottom-4 left-0 w-full h-[3px] bg-slate-400"></div>
+            </div>
+          </div>
+
+          <div class="bg-alphagen-purpleGhost border-2 border-alphagen-purplePale p-4 rounded-3xl flex-grow flex flex-col justify-center space-y-1.5">
+            <span id="cloud-exp-badge" class="text-[10px] font-extrabold uppercase tracking-wider text-alphagen-purple bg-white px-2.5 py-0.5 rounded border border-alphagen-purplePale w-fit">Part 1: Moving Left</span>
+            <h3 id="cloud-exp-title" class="text-base font-extrabold text-alphagen-nearBlack font-mono">self.center_x -= 60 * delta_time</h3>
+            <p id="cloud-exp-desc" class="text-xs text-alphagen-darkGrey leading-relaxed font-medium">
+              Subtracting from <code class="font-mono text-alphagen-purple font-bold">self.center_x</code> moves the cloud smoothly from right to left across the sky every frame!
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SLIDE 8: CODING CHALLENGE 1 - CLOUD SPRITE (CONCISE POINTERS ONLY) ================= -->
+    <div id="slide-8" class="slide-panel bg-white justify-between">
+      <div>
+        <span class="text-xs uppercase font-extrabold tracking-wider text-alphagen-purple bg-alphagen-purpleGhost px-3.5 py-1 rounded-md border border-alphagen-purplePale">Coding Challenge 1</span>
+        <h2 class="text-3xl font-extrabold text-alphagen-nearBlack mt-1.5">Make the Cloud Spawn from Right to Left</h2>
+      </div>
+
+      <div class="space-y-4 my-auto max-w-4xl mx-auto w-full">
+        <div class="checkbox-card py-4" id="chk-cld-1" onclick="toggleTaskCheckbox('chk-cld-1')">
+          <div class="checkbox-box"><i class="fa-solid fa-check"></i></div>
+          <span class="font-extrabold text-base text-alphagen-nearBlack">1. Define <code class="font-mono text-alphagen-purple">move(self, delta_time)</code> in <code class="font-mono text-alphagen-purple">Cloud</code> and move left by <code class="font-mono text-alphagen-purple">60 * delta_time</code></span>
+        </div>
+
+        <div class="checkbox-card py-4" id="chk-cld-2" onclick="toggleTaskCheckbox('chk-cld-2')">
+          <div class="checkbox-box"><i class="fa-solid fa-check"></i></div>
+          <span class="font-extrabold text-base text-alphagen-nearBlack">2. When <code class="font-mono text-alphagen-purple">self.right &lt; 0</code>, set <code class="font-mono text-alphagen-purple">self.left = WIDTH</code> and randomize <code class="font-mono text-alphagen-purple">self.center_y</code> (<code class="font-mono">170</code> to <code class="font-mono">210</code>)</span>
+        </div>
+
+        <div class="checkbox-card py-4" id="chk-cld-3" onclick="toggleTaskCheckbox('chk-cld-3')">
+          <div class="checkbox-box"><i class="fa-solid fa-check"></i></div>
+          <span class="font-extrabold text-base text-alphagen-nearBlack">3. Call <code class="font-mono text-alphagen-purple">cloud.move(delta_time)</code> inside <code class="font-mono text-alphagen-purple">@window.event def on_update(delta_time):</code></span>
+        </div>
+      </div>
+
+      <div class="bg-alphagen-purpleGhost border border-alphagen-purplePale p-3 rounded-2xl text-xs font-bold text-alphagen-purple text-center">
+        Check off all 3 pointers as you add Cloud movement in your editor!
+      </div>
+    </div>
+
+    <!-- ================= SLIDE 9: MOVING THE GROUND SPRITE (INTERACTIVE SIMULATION + CODE HIGHLIGHT) ================= -->
+    <div id="slide-9" class="slide-panel bg-white justify-between">
+      <div>
+        <span class="text-xs uppercase font-extrabold tracking-wider text-alphagen-purple bg-alphagen-purpleGhost px-3.5 py-1 rounded-md border border-alphagen-purplePale">Sprite Motion 2</span>
+        <h2 class="text-2xl font-extrabold text-alphagen-nearBlack mt-1">Moving the Ground Sprite &amp; Seamless Wrapping</h2>
+      </div>
+
+      <div class="grid grid-cols-12 gap-5 my-auto items-stretch">
+        <!-- LEFT 5 COLS: 3-Option Question + Ground Code with Live Highlight -->
+        <div class="col-span-5 flex flex-col justify-between space-y-2.5">
+          <!-- 3 Options: Yes, No, Yes partially -->
+          <div class="bg-alphagen-purpleGhost border-2 border-alphagen-purplePale p-3.5 rounded-2xl space-y-2">
+            <h3 class="font-extrabold text-xs text-alphagen-nearBlack">
+              Will the <code class="font-mono text-alphagen-purple">Ground</code> move code be the exact same as the <code class="font-mono text-alphagen-purple">Cloud</code> movement?
+            </h3>
+            <div class="grid grid-cols-3 gap-1.5">
+              <button onclick="checkSingleQ(this, false, 'gnd-3opt-fb', 'Not completely—Ground uses two strips and wraps differently!')" class="quiz-option text-xs py-2 justify-center">Yes</button>
+              <button onclick="checkSingleQ(this, false, 'gnd-3opt-fb', 'Not completely different—both subtract speed * delta_time!')" class="quiz-option text-xs py-2 justify-center">No</button>
+              <button onclick="checkSingleQ(this, true, 'gnd-3opt-fb', 'Yes, partially! Both move left, but Ground takes speed and wraps by WIDTH * 2!')" class="quiz-option text-xs py-2 justify-center">Yes, partially</button>
+            </div>
+            <div id="gnd-3opt-fb" class="text-[11px] font-bold text-alphagen-purple min-h-[24px]"></div>
+          </div>
+
+          <!-- Highlighted Ground Code -->
+          <div class="bg-alphagen-nearBlack text-white p-3.5 rounded-3xl border-2 border-slate-800 font-mono text-[11.5px] leading-relaxed space-y-1 flex-grow flex flex-col justify-center">
+            <div class="text-emerald-400 font-bold">def move(self, speed, delta_time):</div>
+            <div id="gnd-code-move" class="pl-4 px-2 py-1 rounded-lg border border-transparent text-alphagen-cyan transition-all">
+             # Apply the speed code
+            </div>
+            <div id="gnd-code-if" class="pl-4 px-2 py-1.5 rounded-lg border border-transparent transition-all">
+              <div class="text-pink-400">if <span class="text-white">self.center_x &lt;= -WIDTH / 2:</span></div>
+              <div class="pl-4 text-alphagen-yellow font-bold">self.center_x += WIDTH * 2</div>
+            </div>
+            <div class="pt-1 text-[10.5px] text-slate-400">
+              Live ground1.center_x: <span id="gnd-code-val" class="text-alphagen-yellow font-bold">350</span> (WIDTH/2 = 350)
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT 7 COLS: Live Ground Wrap Simulation + Pointers Below -->
+        <div class="col-span-7 bg-slate-900 border-2 border-slate-800 rounded-3xl p-4 text-white flex flex-col justify-between shadow-xl">
+          <div class="flex items-center justify-between text-xs font-mono">
+            <span class="text-alphagen-cyan font-bold"><i class="fa-solid fa-road mr-1"></i> LIVE GROUND WRAP SIMULATION</span>
+            <span id="gnd-state-badge" class="bg-slate-950 text-emerald-400 px-3 py-0.5 rounded-full border border-slate-700">Scrolling Left...</span>
+          </div>
+
+          <!-- Visual Ground Viewport (Shows visible screen 0..700 + off-screen wrap zone) -->
+          <div class="w-full h-[145px] rounded-2xl border-2 border-slate-700 relative overflow-hidden my-2" style="background-color: rgb(240, 240, 240);">
+            <!-- Visible Window Frame Indicator (Center area) -->
+            <div class="absolute inset-y-0 left-[25%] w-[50%] border-x-2 border-dashed border-alphagen-purple bg-white/60 flex flex-col justify-between p-1.5">
+              <div class="flex justify-between text-[9px] font-mono font-bold text-alphagen-purple">
+                <span>x = 0</span>
+                <span>VISIBLE WINDOW (WIDTH = 700)</span>
+                <span>x = 700</span>
+              </div>
+              <div class="text-center text-2xl">🦖</div>
+              <div class="text-[9px] font-mono text-slate-500 text-center">-WIDTH/2 (-350) is left of screen</div>
+            </div>
+
+            <!-- Ground 1 Strip -->
+            <div id="sim-gnd-1" class="absolute bottom-4 h-4 bg-alphagen-purple text-white text-[9px] font-mono font-bold flex items-center justify-center rounded-sm shadow" style="width: 50%; left: 25%;">
+              G1: <span id="sim-g1-label">350</span>
+            </div>
+
+            <!-- Ground 2 Strip -->
+            <div id="sim-gnd-2" class="absolute bottom-4 h-4 bg-emerald-600 text-white text-[9px] font-mono font-bold flex items-center justify-center rounded-sm shadow" style="width: 50%; left: 75%;">
+              G2: <span id="sim-g2-label">1050</span>
+            </div>
+          </div>
+
+          <!-- Pointers Below Explaining the IF Syntax & Wrap -->
+          <div class="bg-slate-950 border border-slate-800 p-3 rounded-2xl space-y-1.5 text-xs">
+            <div class="text-alphagen-yellow font-extrabold uppercase text-[11px]">How the <code class="font-mono">if</code> Condition Works:</div>
+            <ul class="space-y-1 text-[11.5px] text-slate-200">
+              <li>&bull; <strong>When <code class="font-mono text-alphagen-cyan">self.center_x &lt;= -WIDTH / 2</code> (-350):</strong> The entire 700px ground strip has moved completely off the left edge of the screen!</li>
+              <li>&bull; <strong>Then <code class="font-mono text-alphagen-yellow">self.center_x += WIDTH * 2</code> (+1400):</strong> It jumps from <code class="font-mono">-350</code> right to <code class="font-mono">+1050</code>—lining up seamlessly behind the other ground strip!</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SLIDE 10: CODING CHALLENGE 2 - GROUND (POINTERS ONLY) ================= -->
+    <div id="slide-10" class="slide-panel bg-white justify-between">
+      <div>
+        <span class="text-xs uppercase font-extrabold tracking-wider text-alphagen-purple bg-alphagen-purpleGhost px-3.5 py-1 rounded-md border border-alphagen-purplePale">Coding Challenge 2</span>
+        <h2 class="text-3xl font-extrabold text-alphagen-nearBlack mt-1.5">Make the Ground Scroll Continuously</h2>
+      </div>
+
+      <div class="space-y-4 my-auto max-w-4xl mx-auto w-full">
+        <div class="checkbox-card py-4" id="chk-gnd-m1" onclick="toggleTaskCheckbox('chk-gnd-m1')">
+          <div class="checkbox-box"><i class="fa-solid fa-check"></i></div>
+          <span class="font-extrabold text-base text-alphagen-nearBlack">1. Add<code class="font-mono text-alphagen-purple">speed code </code>inside <code class="font-mono text-alphagen-purple">move function</code> with parameter <code class="font-mono text-alphagen-purple">speed</code></span>
+        </div>
+
+        <div class="checkbox-card py-4" id="chk-gnd-m2" onclick="toggleTaskCheckbox('chk-gnd-m2')">
+          <div class="checkbox-box"><i class="fa-solid fa-check"></i></div>
+          <span class="font-extrabold text-base text-alphagen-nearBlack">2. Add wrap code <code class="font-mono text-alphagen-purple"></code> </span>
+        </div>
+
+        <div class="checkbox-card py-4" id="chk-gnd-m3" onclick="toggleTaskCheckbox('chk-gnd-m3')">
+          <div class="checkbox-box"><i class="fa-solid fa-check"></i></div>
+          <span class="font-extrabold text-base text-alphagen-nearBlack">3. Set <code class="font-mono text-alphagen-purple">game_speed = 240</code> and call <code class="font-mono text-alphagen-purple">move(game_speed, delta_time)</code> for both <code class="font-mono text-alphagen-purple">ground1</code> and <code class="font-mono text-alphagen-purple">ground2</code> in <code class="font-mono text-alphagen-purple">on_update()</code></span>
+        </div>
+      </div>
+
+      <div class="bg-alphagen-purpleGhost border border-alphagen-purplePale p-3 rounded-2xl text-xs font-bold text-alphagen-purple text-center">
+        Test your game to verify that the two ground strips scroll smoothly with zero gaps!
+      </div>
+    </div>
+
+    <!-- ================= SLIDE 11: MOVING & RESPAWNING OBSTACLES (LIVE SIMULATION + LIST VISUALIZER) ================= -->
+    <div id="slide-11" class="slide-panel bg-white justify-between">
+      <div>
+        <span class="text-xs uppercase font-extrabold tracking-wider text-alphagen-purple bg-alphagen-purpleGhost px-3.5 py-1 rounded-md border border-alphagen-purplePale">Sprite Motion 3</span>
+        <h2 class="text-2xl font-extrabold text-alphagen-nearBlack mt-1">Moving &amp; Respawning New Random Obstacles</h2>
+      </div>
+
+      <div class="grid grid-cols-12 gap-5 my-auto items-stretch">
+        <!-- LEFT 6 COLS: 3-Option Question + Live Highlighted Code -->
+        <div class="col-span-6 flex flex-col justify-between space-y-2.5">
+          <!-- 3 Options: Yes, No, Yes partially -->
+          <div class="bg-alphagen-purpleGhost border-2 border-alphagen-purplePale p-3 rounded-2xl space-y-1.5">
+            <h3 class="font-extrabold text-xs text-alphagen-nearBlack">
+              Will the <code class="font-mono text-alphagen-purple">Obstacle</code> have the same wrap code as Cloud &amp; Ground?
+            </h3>
+            <div class="grid grid-cols-3 gap-1.5">
+              <button onclick="checkSingleQ(this, false, 'obs-3opt-fb', 'No—if we wrapped it, the cactus image would never change!')" class="quiz-option text-xs py-1.5 justify-center">Yes</button>
+              <button onclick="checkSingleQ(this, false, 'obs-3opt-fb', 'Not quite—here we delete the old obstacle and append a brand-new random one!')" class="quiz-option text-xs py-1.5 justify-center">Yes, partially</button>
+              <button onclick="checkSingleQ(this, true, 'obs-3opt-fb', 'No! We remove the old cactus from obstacle_list and append a new random Obstacle()!')" class="quiz-option text-xs py-1.5 justify-center">No</button>
+            </div>
+            <div id="obs-3opt-fb" class="text-[11px] font-bold text-alphagen-purple min-h-[22px]"></div>
+          </div>
+
+          <!-- Highlighted Code on Left -->
+          <div class="bg-alphagen-nearBlack text-white p-3.5 rounded-3xl border-2 border-slate-800 font-mono text-[11px] leading-relaxed space-y-1 flex-grow flex flex-col justify-center">
+            <div id="obs-code-move" class="px-2 py-1 rounded-lg border border-transparent transition-all">
+              <span class="text-emerald-400 font-bold">def move(self, speed, delta_time):</span><br>
+              <span class="pl-4 text-alphagen-cyan"># Implement Speed Code </span>
+            </div>
+
+            <div class="pt-1 text-slate-400"># Inside on_update(delta_time):</div>
+            <div class="text-pink-400">for <span class="text-white">obstacle</span> in <span class="text-alphagen-cyan">list(obstacle_list)</span>:</div>
+            <div class="pl-4 text-slate-200">obstacle.move(game_speed, delta_time)</div>
+            <div id="obs-code-check" class="pl-4 px-2 py-0.5 rounded-lg border border-transparent text-pink-400 transition-all">
+              if <span class="text-white">obstacle.right &lt; 0:</span>
+            </div>
+            <div id="obs-code-remove" class="pl-8 px-2 py-0.5 rounded-lg border border-transparent text-alphagen-coral font-bold transition-all">
+              obstacle.remove_from_sprite_lists()
+            </div>
+            <div id="obs-code-append" class="pl-8 px-2 py-0.5 rounded-lg border border-transparent text-alphagen-yellow font-bold transition-all">
+              obstacle_list.append(Obstacle())
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT 6 COLS: Live Simulation + obstacle_list Visualizer -->
+        <div class="col-span-6 bg-slate-900 border-2 border-slate-800 rounded-3xl p-4 text-white flex flex-col justify-between shadow-xl">
+          <div class="flex items-center justify-between text-xs font-mono">
+            <span class="text-alphagen-cyan font-bold"><i class="fa-solid fa-arrows-rotate mr-1"></i> LIVE OBSTACLE SPAWN SIMULATION</span>
+            <span id="obs-sim-status" class="text-alphagen-yellow">Moving Left...</span>
+          </div>
+
+          <!-- Game Stage -->
+          <div class="w-full h-[145px] rounded-2xl border-2 border-slate-700 relative overflow-hidden my-2" style="background-color: rgb(240, 240, 240);">
+            <div class="absolute bottom-5 left-10 text-3xl select-none">🦖</div>
+            <div id="sim-obs-sprite" class="absolute bottom-5 flex flex-col items-center select-none" style="left: 460px;">
+              <span id="sim-obs-tag" class="text-[9px] font-mono font-bold bg-emerald-700 text-white px-1.5 rounded mb-0.5">cacti-big</span>
+              <span id="sim-obs-icon" class="text-3xl">🌵</span>
+            </div>
+            <div class="absolute bottom-4 left-0 w-full h-[3px] bg-slate-400"></div>
+          </div>
+
+          <!-- Live SpriteList Visual Box on Screen -->
+          <div class="bg-slate-950 border border-slate-800 p-3 rounded-2xl space-y-1.5">
+            <div class="flex items-center justify-between text-xs font-mono">
+              <span class="text-alphagen-cyan font-bold">obstacle_list (SpriteList):</span>
+              <span class="text-[10px] text-slate-400">Updates automatically at x &lt; 0</span>
+            </div>
+            <div id="obs-list-visual" class="min-h-[42px] bg-slate-900 border border-dashed border-slate-700 rounded-xl p-2 flex items-center gap-2 text-xs font-mono">
+              <span class="bg-emerald-600/30 border border-emerald-500 text-emerald-200 px-3 py-1 rounded-lg font-bold flex items-center gap-1.5">
+                <span>🌵</span> <span>Obstacle("cacti-big.png")</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SLIDE 12: CODING CHALLENGE 3 - OBSTACLE (POINTERS ONLY) ================= -->
+    <div id="slide-12" class="slide-panel bg-white justify-between">
+      <div>
+        <span class="text-xs uppercase font-extrabold tracking-wider text-alphagen-purple bg-alphagen-purpleGhost px-3.5 py-1 rounded-md border border-alphagen-purplePale">Coding Challenge 3</span>
+        <h2 class="text-3xl font-extrabold text-alphagen-nearBlack mt-1.5">Add Obstacle Movement &amp; Random Respawning</h2>
+      </div>
+
+      <div class="space-y-4 my-auto max-w-4xl mx-auto w-full">
+        <div class="checkbox-card py-4" id="chk-obs-m1" onclick="toggleTaskCheckbox('chk-obs-m1')">
+          <div class="checkbox-box"><i class="fa-solid fa-check"></i></div>
+          <span class="font-extrabold text-base text-alphagen-nearBlack">1. Set <code class="font-mono text-alphagen-purple">Obstacle</code> starting <code class="font-mono text-alphagen-purple">center_x = 750</code> and add <code class="font-mono text-alphagen-purple">move(self, speed, delta_time)</code></span>
+        </div>
+
+        <div class="checkbox-card py-4" id="chk-obs-m2" onclick="toggleTaskCheckbox('chk-obs-m2')">
+          <div class="checkbox-box"><i class="fa-solid fa-check"></i></div>
+          <span class="font-extrabold text-base text-alphagen-nearBlack">2. Loop over <code class="font-mono text-alphagen-purple">list(obstacle_list)</code> in <code class="font-mono text-alphagen-purple">on_update()</code> and move each obstacle left</span>
+        </div>
+
+        <div class="checkbox-card py-4" id="chk-obs-m3" onclick="toggleTaskCheckbox('chk-obs-m3')">
+          <div class="checkbox-box"><i class="fa-solid fa-check"></i></div>
+          <span class="font-extrabold text-base text-alphagen-nearBlack">3. When <code class="font-mono text-alphagen-purple">obstacle.right &lt; 0</code>, remove it from sprite lists and append a new <code class="font-mono text-alphagen-purple">Obstacle()</code></span>
+        </div>
+      </div>
+
+    
+    </div>
+
+    <!-- ================= SLIDE 13: KEYBOARD EVENTS (3 PARTS: ON_KEY_PRESS, ON_KEY_RELEASE, KEYBOARD BUTTONS) ================= -->
+    <div id="slide-13" class="slide-panel bg-white justify-between">
+      <div>
+        <span class="text-xs uppercase font-extrabold tracking-wider text-alphagen-purple bg-alphagen-purpleGhost px-3.5 py-1 rounded-md border border-alphagen-purplePale">Player Controls</span>
+        <h2 class="text-2xl font-extrabold text-alphagen-nearBlack mt-1">Understanding Keyboard Events &amp; Key Constants</h2>
+      </div>
+
+      <!-- 3 Clear Parts Grid -->
+      <div class="grid grid-cols-3 gap-5 my-auto items-stretch">
+        <!-- Part 1: on_key_press -->
+        <div class="bg-alphagen-purpleGhost border-2 border-alphagen-purplePale p-5 rounded-3xl flex flex-col justify-between space-y-3">
+          <div class="space-y-2">
+            <div class="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-lg shadow-sm">
+              <i class="fa-solid fa-arrow-down"></i>
+            </div>
+            <span class="text-[11px] font-extrabold uppercase tracking-wider text-emerald-700">Part 1 &bull; Key Press Event</span>
+            <h3 class="font-extrabold text-base text-alphagen-nearBlack font-mono">on_key_press(key, modifiers)</h3>
+            <p class="text-xs text-alphagen-darkGrey leading-relaxed font-medium">
+              Triggered <strong>once</strong> the exact instant a player pushes a keyboard button down. We use this to start moving left/right or trigger a jump!
+            </p>
+          </div>
+          <div class="bg-white border border-alphagen-purplePale p-2.5 rounded-xl font-mono text-[11px] text-alphagen-purple font-bold">
+            @window.event<br>def on_key_press(key, modifiers):
+          </div>
+        </div>
+
+        <!-- Part 2: on_key_release -->
+        <div class="bg-alphagen-purpleGhost border-2 border-alphagen-purplePale p-5 rounded-3xl flex flex-col justify-between space-y-3">
+          <div class="space-y-2">
+            <div class="w-11 h-11 rounded-2xl bg-alphagen-yellowDark text-alphagen-nearBlack flex items-center justify-center text-lg shadow-sm">
+              <i class="fa-solid fa-arrow-up"></i>
+            </div>
+            <span class="text-[11px] font-extrabold uppercase tracking-wider text-amber-800">Part 2 &bull; Key Release Event</span>
+            <h3 class="font-extrabold text-base text-alphagen-nearBlack font-mono">on_key_release(key, modifiers)</h3>
+            <p class="text-xs text-alphagen-darkGrey leading-relaxed font-medium">
+              Triggered <strong>once</strong> the moment a player lifts their finger off a key. We use this to stop horizontal motion by setting velocity back to <code class="font-mono font-bold">0</code>!
+            </p>
+          </div>
+          <div class="bg-white border border-alphagen-purplePale p-2.5 rounded-xl font-mono text-[11px] text-alphagen-purple font-bold">
+            @window.event<br>def on_key_release(key, modifiers):
+          </div>
+        </div>
+
+        <!-- Part 3: Keyboard Buttons -->
+        <div class="bg-alphagen-nearBlack text-white border-2 border-slate-800 p-5 rounded-3xl flex flex-col justify-between space-y-3 shadow-lg">
+          <div class="space-y-2">
+            <div class="w-11 h-11 rounded-2xl bg-alphagen-purple text-alphagen-yellow flex items-center justify-center text-lg shadow-sm">
+              <i class="fa-solid fa-keyboard"></i>
+            </div>
+            <span class="text-[11px] font-extrabold uppercase tracking-wider text-alphagen-cyan">Part 3 &bull; Keyboard Buttons</span>
+            <h3 class="font-extrabold text-base text-alphagen-yellow">Arcade Key Constants</h3>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              Every key in Arcade starts with <code class="font-mono text-alphagen-cyan">arcade.key.</code> followed by the key name in <strong>UPPERCASE</strong>:
+            </p>
+          </div>
+
+          <div class="bg-slate-950 border border-slate-800 p-3 rounded-2xl font-mono text-[11px] space-y-1.5">
+            <div><span class="text-slate-400">Arrows:</span> <span class="text-alphagen-yellow">arcade.key.LEFT / RIGHT / UP / DOWN</span></div>
+            <div><span class="text-slate-400">Spacebar:</span> <span class="text-emerald-400">arcade.key.SPACE</span></div>
+            <div><span class="text-slate-400">Letters:</span> <span class="text-alphagen-cyan">arcade.key.W, arcade.key.A, arcade.key.S, arcade.key.D</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SLIDE 14: PRACTICE LEFT & RIGHT MOVEMENT (INTERACTIVE SIMULATION + CODE HIGHLIGHT) ================= -->
+    <div id="slide-14" class="slide-panel bg-white justify-between">
+      <div>
+        <span class="text-xs uppercase font-extrabold tracking-wider text-alphagen-purple bg-alphagen-purpleGhost px-3.5 py-1 rounded-md border border-alphagen-purplePale">Keyboard Practice</span>
+        <h2 class="text-2xl font-extrabold text-alphagen-nearBlack mt-1">Practice: Moving Left &amp; Right with Key Press &amp; Release</h2>
+        <p class="text-xs text-alphagen-darkGrey font-medium">Hold or click <strong>LEFT</strong>, <strong>RIGHT</strong>, or <strong>RELEASE</strong> on the right to see which part of the code runs!</p>
+      </div>
+
+      <div class="grid grid-cols-12 gap-5 my-auto items-stretch">
+        <!-- LEFT 6 COLS: Clean Code (3 lines in move + press + release) -->
+        <div class="col-span-6 bg-alphagen-nearBlack text-white p-4 rounded-3xl border-2 border-slate-800 flex flex-col justify-between shadow-xl font-mono text-[11.5px] leading-relaxed">
+          <div class="bg-slate-950 border border-slate-800 p-3 rounded-2xl space-y-1.5 my-auto">
+            <div class="text-slate-400"># 1. Inside Dinosaur.move(self, delta_time):</div>
+            <div id="lr-code-move" class="px-2 py-1 rounded-lg border border-transparent text-alphagen-cyan font-bold transition-all">
+            #Implement Speed Code
+            </div>
+
+            <div class="pt-1 text-slate-400"># 2. When key is pressed:</div>
+            <div class="text-emerald-400 font-bold">def on_key_press(key, modifiers):</div>
+            <div id="lr-code-left" class="pl-4 px-2 py-1 rounded-lg border border-transparent transition-all">
+              <span class="text-pink-400">if</span> key == arcade.key.LEFT:<br>
+              <span class="pl-4 text-alphagen-yellow font-bold">dinosaur.velocity_x = -200</span>
+            </div>
+            <div id="lr-code-right" class="pl-4 px-2 py-1 rounded-lg border border-transparent transition-all">
+              <span class="text-pink-400">elif</span> #Implement Right Key Code <br>
+             
+            </div>
+
+            <div class="pt-1 text-slate-400"># 3. When key is released:</div>
+            <div id="lr-code-release" class="px-2 py-1 rounded-lg border border-transparent transition-all">
+              <div class="text-emerald-400 font-bold">def on_key_release(key, modifiers):</div>
+              <div class="pl-4 text-pink-400">if <span class="text-white">key in (arcade.key.LEFT, arcade.key.RIGHT):</span></div>
+              <div class="pl-8 text-alphagen-cyan font-bold">dinosaur.velocity_x = 0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT 6 COLS: Interactive Left/Right Simulation -->
+        <div class="col-span-6 bg-slate-900 border-2 border-slate-800 rounded-3xl p-4 text-white flex flex-col justify-between shadow-xl">
+          <div class="flex justify-between items-center text-xs font-mono">
+            <span class="text-alphagen-cyan font-bold"><i class="fa-solid fa-gamepad mr-1"></i> INTERACTIVE HORIZONTAL SIMULATOR</span>
+            <span id="lr-sim-status" class="text-alphagen-yellow">velocity_x = 0</span>
+          </div>
+
+          <!-- Stage -->
+          <div class="w-full h-[175px] rounded-2xl border-2 border-slate-700 relative overflow-hidden my-2" style="background-color: rgb(240, 240, 240);">
+            <div id="lr-sim-dino" class="absolute bottom-5 flex flex-col items-center transition-all duration-100 select-none" style="left: 220px;">
+              <span id="lr-dino-tag" class="text-[9px] font-mono font-bold bg-alphagen-purple text-white px-1.5 rounded mb-0.5">x=350</span>
+              <span class="text-4xl">🦖</span>
+            </div>
+            <div class="absolute bottom-4 left-0 w-full h-[3px] bg-slate-400"></div>
+          </div>
+
+          <!-- Interactive Press & Release Controls -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-center gap-3">
+              <button onmousedown="triggerLRSim('left')" onmouseup="triggerLRSim('release')" onclick="triggerLRSim('left')" class="key-cap px-4 py-2 text-xs">
+                <i class="fa-solid fa-arrow-left mr-1.5"></i> Press LEFT (-200)
+              </button>
+              <button onclick="triggerLRSim('release')" class="key-cap px-4 py-2 text-xs !text-emerald-300">
+                <i class="fa-solid fa-hand mr-1.5"></i> Release Key (0)
+              </button>
+              <button onmousedown="triggerLRSim('right')" onmouseup="triggerLRSim('release')" onclick="triggerLRSim('right')" class="key-cap px-4 py-2 text-xs">
+                Press RIGHT (+200) <i class="fa-solid fa-arrow-right ml-1.5"></i>
+              </button>
+            </div>
+            <p class="text-[11px] text-slate-400 text-center">
+              Click <strong>Press LEFT</strong> or <strong>Press RIGHT</strong> to highlight the active code block and move the Dinosaur!
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SLIDE 15: CODING CHALLENGE 4 - LEFT & RIGHT (FRESH SCREEN, POINTERS ONLY) ================= -->
+    <div id="slide-15" class="slide-panel bg-white justify-between">
+      <div>
+        <span class="text-xs uppercase font-extrabold tracking-wider text-alphagen-purple bg-alphagen-purpleGhost px-3.5 py-1 rounded-md border border-alphagen-purplePale">Coding Challenge 4</span>
+        <h2 class="text-3xl font-extrabold text-alphagen-nearBlack mt-1.5">Code Both Left &amp; Right Dinosaur Movement</h2>
+      </div>
+
+      <div class="space-y-4 my-auto max-w-4xl mx-auto w-full">
+        <div class="checkbox-card py-4" id="chk-lr-1" onclick="toggleTaskCheckbox('chk-lr-1')">
+          <div class="checkbox-box"><i class="fa-solid fa-check"></i></div>
+          <span class="font-extrabold text-base text-alphagen-nearBlack">1. Add <code class="font-mono text-alphagen-purple">self.velocity_x = 0</code> in <code class="font-mono text-alphagen-purple">Dinosaur.__init__()</code> and update <code class="font-mono text-alphagen-purple"></code> inside <code class="font-mono text-alphagen-purple">move(self, delta_time) with speed code</code></span>
+        </div>
+
+        <div class="checkbox-card py-4" id="chk-lr-2" onclick="toggleTaskCheckbox('chk-lr-2')">
+          <div class="checkbox-box"><i class="fa-solid fa-check"></i></div>
+          <span class="font-extrabold text-base text-alphagen-nearBlack">2. Inside <code class="font-mono text-alphagen-purple">on_key_press()</code>, set <code class="font-mono text-alphagen-purple">velocity_x</code> to <code class="font-mono">-200</code> for <code class="font-mono">LEFT</code> and <code class="font-mono">+200</code> for <code class="font-mono">RIGHT</code></span>
+        </div>
+
+        <div class="checkbox-card py-4" id="chk-lr-3" onclick="toggleTaskCheckbox('chk-lr-3')">
+          <div class="checkbox-box"><i class="fa-solid fa-check"></i></div>
+          <span class="font-extrabold text-base text-alphagen-nearBlack">3. Inside <code class="font-mono text-alphagen-purple">on_key_release()</code>, reset <code class="font-mono text-alphagen-purple">dinosaur.velocity_x = 0</code> when Left or Right is released</span>
+        </div>
+      </div>
+
+     
+    </div>
+
+    <!-- ================= SLIDE 16: MAKING THE DINOSAUR JUMP! (INTERACTIVE JUMP SIM + CODE HIGHLIGHT) ================= -->
+    <div id="slide-16" class="slide-panel bg-white justify-between">
+      <div>
+        <span class="text-xs uppercase font-extrabold tracking-wider text-alphagen-purple bg-alphagen-purpleGhost px-3.5 py-1 rounded-md border border-alphagen-purplePale">Jump &amp; Gravity Physics</span>
+        <h2 class="text-2xl font-extrabold text-alphagen-nearBlack mt-1">Making the Dinosaur Jump with <code class="font-mono text-alphagen-purple">self.jumping</code></h2>
+      </div>
+
+      <div class="grid grid-cols-12 gap-5 my-auto items-stretch">
+        <!-- LEFT 6 COLS: Why self.jumping + Highlighted Jump Code -->
+        <div class="col-span-6 flex flex-col justify-between space-y-2.5">
+          <div class="bg-alphagen-yellowPale border-2 border-alphagen-yellowDark/70 p-3 rounded-2xl text-xs">
+            <strong class="text-alphagen-nearBlack block mb-0.5"><i class="fa-solid fa-shield-halved text-amber-700 mr-1"></i> Why do we need <code class="font-mono text-alphagen-purple">self.jumping = False</code>?</strong>
+            <span class="text-alphagen-darkGrey">It prevents <strong>infinite mid-air jumping</strong>! The dinosaur can only jump when <code class="font-mono font-bold">not self.jumping</code> (on the ground), and resets to <code class="font-mono font-bold">False</code> upon landing.</span>
+          </div>
+
+          <div class="bg-alphagen-nearBlack text-white p-3.5 rounded-3xl border-2 border-slate-800 font-mono text-[11px] leading-relaxed space-y-1 flex-grow flex flex-col justify-center">
+            <div id="jmp-code-init" class="px-2 py-0.5 rounded-lg border border-transparent transition-all">
+              <span class="text-slate-400"># In __init__:</span> <span class="text-alphagen-yellow font-bold">self.jumping = False</span>
+            </div>
+
+            <div id="jmp-code-launch" class="px-2 py-1 rounded-lg border border-transparent transition-all">
+              <div class="text-emerald-400 font-bold">def jump(self):</div>
+              <div class="pl-4 text-pink-400">if not <span class="text-white">self.jumping:</span></div>
+              <div class="pl-8 text-alphagen-cyan font-bold">self.velocity_y = <span id="jmp-code-vel">430</span></div>
+              <div class="pl-8 text-alphagen-yellow font-bold">self.jumping = True</div>
+            </div>
+
+            <div id="jmp-code-gravity" class="px-2 py-1 rounded-lg border border-transparent transition-all">
+             <div class="text-emerald-400 font-bold"># Updating the move function with the logic below</div>
+              <div class="text-pink-400">if <span class="text-white">self.jumping:</span></div>
+              <div class="pl-4 text-slate-200">self.velocity_y -= <span id="jmp-code-grav">1200</span> * delta_time</div>
+              <div class="pl-4 text-slate-200">self.center_y += self.velocity_y * delta_time</div>
+            </div>
+
+            <div id="jmp-code-land" class="pl-4 px-2 py-1 rounded-lg border border-transparent transition-all">
+              <div class="text-pink-400">if <span class="text-white">self.bottom &lt;= GROUND_Y:</span></div>
+              <div class="pl-4 text-emerald-300">self.bottom = GROUND_Y <br/> self.velocity_y = 0<br/> self.jumping = False</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT 6 COLS: Live Jump Simulation with Code Highlighting -->
+        <div class="col-span-6 bg-slate-900 border-2 border-slate-800 rounded-3xl p-4 text-white flex flex-col justify-between shadow-xl">
+          <div class="flex justify-between items-center text-xs font-mono">
+            <span class="text-alphagen-cyan font-bold"><i class="fa-solid fa-arrow-up-from-ground-water mr-1"></i> LIVE JUMP SIMULATION</span>
+            <span id="jmp-sim-state" class="bg-slate-950 text-emerald-400 px-3 py-0.5 rounded-full border border-slate-700">jumping = False (Grounded)</span>
+          </div>
+
+          <!-- Jump Stage -->
+          <div class="w-full h-[185px] rounded-2xl border-2 border-slate-700 relative overflow-hidden my-2" style="background-color: rgb(240, 240, 240);">
+            <div id="jmp-sim-dino" class="absolute left-20 flex flex-col items-center select-none" style="bottom: 18px;">
+              <span id="jmp-dino-badge" class="text-[9px] font-mono font-bold bg-alphagen-purple text-white px-1.5 rounded mb-0.5">vel_y=0</span>
+              <span class="text-4xl">🦖</span>
+            </div>
+            <div class="absolute bottom-4 left-0 w-full h-[3px] bg-slate-400"></div>
+          </div>
+
+          <button onclick="triggerJumpSim()" class="w-full bg-alphagen-yellow hover:bg-alphagen-yellowDark text-alphagen-nearBlack font-extrabold text-sm py-3 rounded-2xl btn-interactive shadow flex items-center justify-center gap-2">
+            <i class="fa-solid fa-arrow-up"></i>
+            <span>Trigger Jump (SPACE / UP)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SLIDE 17: CODING CHALLENGE 5 - JUMPING (NO EXPLANATION + DRAGGABLE SLIDERS FOR JUMP VALUES) ================= -->
+    <div id="slide-17" class="slide-panel bg-white justify-between">
+      <div>
+        <span class="text-xs uppercase font-extrabold tracking-wider text-alphagen-purple bg-alphagen-purpleGhost px-3.5 py-1 rounded-md border border-alphagen-purplePale">Coding Challenge 5</span>
+        <h2 class="text-3xl font-extrabold text-alphagen-nearBlack mt-1.5">Add Jumping &amp; Gravity to Your Dinosaur</h2>
+      </div>
+
+      <div class="grid grid-cols-12 gap-5 my-auto items-stretch">
+        <!-- LEFT 7 COLS: Concise Pointers Only (No Explanations) -->
+        <div class="col-span-7 space-y-2.5 flex flex-col justify-center">
+          <div class="checkbox-card py-3" id="chk-jmp-1" onclick="toggleTaskCheckbox('chk-jmp-1')">
+            <div class="checkbox-box"><i class="fa-solid fa-check"></i></div>
+            <span class="font-extrabold text-sm text-alphagen-nearBlack">1. Set <code class="font-mono text-alphagen-purple">self.jumping = False</code> inside <code class="font-mono text-alphagen-purple">Dinosaur.__init__()</code></span>
+          </div>
+
+          <div class="checkbox-card py-3" id="chk-jmp-2" onclick="toggleTaskCheckbox('chk-jmp-2')">
+            <div class="checkbox-box"><i class="fa-solid fa-check"></i></div>
+            <span class="font-extrabold text-sm text-alphagen-nearBlack">2. Create <code class="font-mono text-alphagen-purple">def jump(self):</code> with <code class="font-mono text-alphagen-purple">self.velocity_y = <span id="chk-vel-val">430</span></code> and <code class="font-mono text-alphagen-purple">self.jumping = True</code></span>
+          </div>
+
+          <div class="checkbox-card py-3" id="chk-jmp-3" onclick="toggleTaskCheckbox('chk-jmp-3')">
+            <div class="checkbox-box"><i class="fa-solid fa-check"></i></div>
+            <span class="font-extrabold text-sm text-alphagen-nearBlack">3. Subtract <code class="font-mono text-alphagen-purple"><span id="chk-grav-val">1200</span> * delta_time</code> from <code class="font-mono text-alphagen-purple">self.velocity_y</code> in <code class="font-mono text-alphagen-purple">move()</code> and reset on landing</span>
+          </div>
+
+          <div class="checkbox-card py-3" id="chk-jmp-4" onclick="toggleTaskCheckbox('chk-jmp-4')">
+            <div class="checkbox-box"><i class="fa-solid fa-check"></i></div>
+            <span class="font-extrabold text-sm text-alphagen-nearBlack">4. Call <code class="font-mono text-alphagen-purple">dinosaur.jump()</code> in <code class="font-mono text-alphagen-purple">on_key_press()</code> for <code class="font-mono">SPACE</code> or <code class="font-mono">UP</code></span>
+          </div>
+        </div>
+
+        <!-- RIGHT 5 COLS: Draggable Jump & Gravity Value Tuner -->
+        <div class="col-span-5 bg-alphagen-nearBlack text-white p-4 rounded-3xl border-2 border-slate-800 flex flex-col justify-between shadow-xl">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-extrabold text-alphagen-yellow uppercase"><i class="fa-solid fa-sliders mr-1"></i> Tune Jump Values</span>
+            <button onclick="resetJumpTuner()" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded font-bold cursor-pointer">Default (430 / 1200)</button>
+          </div>
+
+          <!-- Mini Preview Box -->
+          <div class="w-full h-[125px] rounded-2xl border border-slate-700 relative overflow-hidden my-2" style="background-color: rgb(240, 240, 240);">
+            <div id="tuner-dino" class="absolute left-16 text-3xl select-none" style="bottom: 14px;">🦖</div>
+            <div class="absolute bottom-3 left-0 w-full h-[3px] bg-slate-400"></div>
+          </div>
+
+          <!-- Draggable Sliders -->
+          <div class="space-y-2.5 bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs">
+            <div>
+              <div class="flex justify-between font-bold mb-1">
+                <span class="text-alphagen-cyan">Jump Velocity (<code class="font-mono">velocity_y</code>):</span>
+                <span id="tuner-vel-label" class="font-mono text-alphagen-yellow">430</span>
+              </div>
+              <input id="tuner-vel-slider" type="range" min="250" max="650" value="430" oninput="updateJumpTunerValues()" class="w-full accent-alphagen-yellow cursor-pointer">
+            </div>
+
+            <div>
+              <div class="flex justify-between font-bold mb-1">
+                <span class="text-emerald-400">Gravity Strength:</span>
+                <span id="tuner-grav-label" class="font-mono text-alphagen-yellow">1200</span>
+              </div>
+              <input id="tuner-grav-slider" type="range" min="600" max="2000" step="50" value="1200" oninput="updateJumpTunerValues()" class="w-full accent-alphagen-cyan cursor-pointer">
+            </div>
+          </div>
+
+          <button onclick="testTunerJump()" class="w-full bg-alphagen-purple hover:bg-alphagen-purpleDark text-white font-extrabold text-xs py-2.5 rounded-xl btn-interactive mt-2">
+            Test Custom Jump &uarr;
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SLIDE 18: 3 LOGIC QUESTIONS & CELEBRATION ================= -->
+    <div id="slide-18" class="slide-panel bg-white justify-between">
+      <div>
+        <span class="text-xs uppercase font-extrabold tracking-wider text-alphagen-purple bg-alphagen-purpleGhost px-4 py-1.5 rounded-md border border-alphagen-purplePale">Logic Check</span>
+        <h2 class="text-3xl font-extrabold text-alphagen-purple mt-1.5">Sprite Movement Logic Check &amp; Celebrate!</h2>
+      </div>
+
+      <div class="space-y-3.5 my-auto">
+        <!-- Logic Question 1 -->
+        <div class="bg-alphagen-purpleGhost border-2 border-alphagen-purplePale p-4 rounded-2xl flex items-center justify-between gap-4">
+          <div class="max-w-lg">
+            <h4 class="font-extrabold text-sm text-alphagen-nearBlack">1. Why do we multiply speed by <code class="font-mono text-alphagen-purple">delta_time</code> when updating sprite positions?</h4>
+          </div>
+          <div class="flex gap-2.5 shrink-0">
+            <button onclick="checkFinalQuiz(this, true)" class="quiz-option text-xs px-3.5 py-2">So sprites move at the same speed on fast and slow computers</button>
+            <button onclick="checkFinalQuiz(this, false)" class="quiz-option text-xs px-3.5 py-2">To make the game window wider</button>
+          </div>
+        </div>
+
+        <!-- Logic Question 2 -->
+        <div class="bg-alphagen-purpleGhost border-2 border-alphagen-purplePale p-4 rounded-2xl flex items-center justify-between gap-4">
+          <div class="max-w-lg">
+            <h4 class="font-extrabold text-sm text-alphagen-nearBlack">2. Why do we remove an obstacle at <code class="font-mono text-alphagen-purple">obstacle.right &lt; 0</code> instead of wrapping it back to the right?</h4>
+          </div>
+          <div class="flex gap-2.5 shrink-0">
+            <button onclick="checkFinalQuiz(this, false)" class="quiz-option text-xs px-3.5 py-2">Because Arcade cannot move sprites right</button>
+            <button onclick="checkFinalQuiz(this, true)" class="quiz-option text-xs px-3.5 py-2">So a brand-new random cactus (small or big) spawns</button>
+          </div>
+        </div>
+
+        <!-- Logic Question 3 -->
+        <div class="bg-alphagen-purpleGhost border-2 border-alphagen-purplePale p-4 rounded-2xl flex items-center justify-between gap-4">
+          <div class="max-w-lg">
+            <h4 class="font-extrabold text-sm text-alphagen-nearBlack">3. What happens if <code class="font-mono text-alphagen-purple">self.jumping</code> is already <code class="font-mono text-alphagen-purple">True</code> when the player presses Spacebar?</h4>
+          </div>
+          <div class="flex gap-2.5 shrink-0">
+            <button onclick="checkFinalQuiz(this, false)" class="quiz-option text-xs px-3.5 py-2">The dinosaur jumps higher in mid-air</button>
+            <button onclick="checkFinalQuiz(this, true)" class="quiz-option text-xs px-3.5 py-2">Nothing—it waits until landing back on the ground</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grand Celebration Button -->
+      <div>
+        <button onclick="triggerGrandCelebration()" class="w-full bg-alphagen-yellow hover:bg-alphagen-yellowDark text-alphagen-nearBlack font-extrabold py-4 rounded-2xl text-base btn-interactive shadow-lg flex items-center justify-center gap-3">
+          <i class="fa-solid fa-trophy text-alphagen-purple text-xl"></i>
+          <span>Celebrate </span>
+          <span>🎉</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom Navigation Control Bar -->
+  <div class="nav-bar">
+    <button id="prev-btn" class="nav-btn btn-interactive" onclick="prevSlide()" disabled>
+      <i class="fa-solid fa-arrow-left"></i>
+      <span>Previous</span>
+    </button>
+
+    <span class="text-xs font-semibold text-white/90">
+      Use Arrow Keys (&larr; / &rarr;) or buttons to navigate slides
+    </span>
+
+    <button id="next-btn" class="nav-btn btn-interactive" onclick="handleNextOrFinish()">
+      <span id="next-btn-text">Next</span>
+      <i id="next-btn-icon" class="fa-solid fa-arrow-right"></i>
+    </button>
+  </div>
+</div>
+
+<!-- ================= JAVASCRIPT SYSTEM ================= -->
+<script>
+let currentSlide = 1;
+const totalSlides = 18;
+let soundEnabled = true;
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+/* Web Audio Synthesizer */
+function playSound(type) {
+  if (!soundEnabled) return;
+  try {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.connect(g);
+    g.connect(audioCtx.destination);
+    const now = audioCtx.currentTime;
+
+    if (type === 'correct') {
+      o.type = 'sine';
+      o.frequency.setValueAtTime(523, now);
+      o.frequency.exponentialRampToValueAtTime(659, now + 0.15);
+      g.gain.setValueAtTime(0.1, now);
+      g.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      o.start();
+      o.stop(now + 0.3);
+    } else if (type === 'wrong') {
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(180, now);
+      o.frequency.linearRampToValueAtTime(110, now + 0.2);
+      g.gain.setValueAtTime(0.1, now);
+      g.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+      o.start();
+      o.stop(now + 0.25);
+    } else {
+      o.type = 'triangle';
+      o.frequency.setValueAtTime(360, now);
+      o.frequency.exponentialRampToValueAtTime(720, now + 0.08);
+      g.gain.setValueAtTime(0.1, now);
+      g.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+      o.start();
+      o.stop(now + 0.08);
+    }
+  } catch (e) {}
+}
+
+function toggleAudio() {
+  soundEnabled = !soundEnabled;
+  const iconHtml = soundEnabled ? '<i class="fa-solid fa-volume-high"></i>' : '<i class="fa-solid fa-volume-xmark"></i>';
+  const topAudioBtn = document.getElementById('top-audio-btn');
+  const stageAudioBtn = document.getElementById('audio-btn');
+  if (topAudioBtn) {
+    topAudioBtn.innerHTML = soundEnabled
+      ? '<i class="fa-solid fa-volume-high text-base" id="sound-icon"></i>'
+      : '<i class="fa-solid fa-volume-xmark text-base" id="sound-icon"></i>';
+  }
+  if (stageAudioBtn) stageAudioBtn.innerHTML = iconHtml;
+}
+
+/* Confetti Celebrations */
+function triggerSuccessConfetti() {
+  playSound('correct');
+  if (typeof confetti === 'function') {
+    confetti({ particleCount: 75, spread: 60, origin: { y: 0.6 } });
+  }
+}
+
+function triggerGrandCelebration() {
+  playSound('correct');
+  if (typeof confetti === 'function') {
+    confetti({
+      particleCount: 140,
+      spread: 90,
+      origin: { y: 0.5 },
+      colors: ['#5E48C4', '#FFD071', '#59E4FB', '#ED5661', '#10B981']
+    });
+    setTimeout(() => {
+      confetti({ particleCount: 90, angle: 60, spread: 55, origin: { x: 0 } });
+      confetti({ particleCount: 90, angle: 120, spread: 55, origin: { x: 1 } });
+    }, 250);
+  }
+}
+
+/* Navigation System */
+function initHeaderDots() {
+  const c = document.getElementById('header-dots-container');
+  if (!c) return;
+  c.innerHTML = '';
+  for (let i = 1; i <= totalSlides; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot-indicator ' + (i === 1 ? 'active' : '');
+    d.onclick = () => goToSlide(i);
+    c.appendChild(d);
+  }
+}
+
+function updateSlideDisplay() {
+  document.querySelectorAll('.slide-panel').forEach((p, i) => p.classList.toggle('active', i + 1 === currentSlide));
+  document.querySelectorAll('.dot-indicator').forEach((d, i) => d.classList.toggle('active', i + 1 === currentSlide));
+
+  const counterPill = document.getElementById('slide-counter-pill');
+  const dropdown = document.getElementById('slide-dropdown');
+  const prevBtn = document.getElementById('prev-btn');
+  const nextBtn = document.getElementById('next-btn');
+  const nextBtnText = document.getElementById('next-btn-text');
+  const nextBtnIcon = document.getElementById('next-btn-icon');
+
+  if (counterPill) counterPill.innerText = `Slide ${currentSlide} / ${totalSlides}`;
+  if (dropdown) dropdown.value = currentSlide;
+  if (prevBtn) prevBtn.disabled = currentSlide === 1;
+
+  if (nextBtn && nextBtnText && nextBtnIcon) {
+    if (currentSlide === totalSlides) {
+      nextBtnText.innerText = 'Finish';
+      nextBtnIcon.className = 'fa-solid fa-flag-checkered';
+      nextBtn.classList.add('finish-btn');
+    } else {
+      nextBtnText.innerText = 'Next';
+      nextBtnIcon.className = 'fa-solid fa-arrow-right';
+      nextBtn.classList.remove('finish-btn');
+    }
+  }
+}
+
+function handleNextOrFinish() {
+  if (currentSlide === totalSlides) {
+    triggerGrandCelebration();
+  } else {
+    nextSlide();
+  }
+}
+
+function nextSlide() {
+  if (currentSlide < totalSlides) {
+    currentSlide++;
+    updateSlideDisplay();
+    playSound('pop');
+  }
+}
+
+function prevSlide() {
+  if (currentSlide > 1) {
+    currentSlide--;
+    updateSlideDisplay();
+    playSound('pop');
+  }
+}
+
+function goToSlide(n) {
+  if (n >= 1 && n <= totalSlides) {
+    currentSlide = n;
+    updateSlideDisplay();
+    playSound('pop');
+  }
+}
+
+function fitStageToScreen() {
+  const stage = document.querySelector('.slide-stage');
+  const nav = document.querySelector('.nav-bar');
+  if (!stage) return;
+  const availableWidth = window.innerWidth - 32;
+  if (availableWidth < 1280) {
+    const scale = availableWidth / 1280;
+    stage.style.transform = `scale(${scale})`;
+    stage.style.marginBottom = `-${720 * (1 - scale)}px`;
+    if (nav) nav.style.transform = `scale(${scale})`;
+  } else {
+    stage.style.transform = 'none';
+    stage.style.marginBottom = '0px';
+    if (nav) nav.style.transform = 'none';
+  }
+}
+
+/* Generic Single-Choice Quiz Handler */
+function checkSingleQ(btn, isCorrect, feedbackId, message) {
+  const container = btn.parentElement;
+  container.querySelectorAll('.quiz-option').forEach(b => {
+    b.classList.remove('selected-correct', 'selected-wrong');
+  });
+
+  const fb = document.getElementById(feedbackId);
+  if (isCorrect) {
+    playSound('correct');
+    btn.classList.add('selected-correct');
+    if (fb) {
+      fb.innerText = '✓ ' + message;
+      fb.className = fb.className.replace(/text-alphagen-purple|text-alphagen-coral/g, '') + ' text-emerald-600';
+    }
+  } else {
+    playSound('wrong');
+    btn.classList.add('selected-wrong');
+    if (fb) {
+      fb.innerText = '✕ ' + message;
+      fb.className = fb.className.replace(/text-alphagen-purple|text-emerald-600/g, '') + ' text-alphagen-coral';
+    }
+  }
+}
+
+function toggleTaskCheckbox(id) {
+  playSound('pop');
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('checked');
+}
+
+/* ================= SLIDE 2: RECAP ANIMATION & LOGIC SEQUENCER ================= */
+let recapAnimRunning = true;
+let recapSpriteX = 500;
+
+function toggleRecapAnim() {
+  playSound('pop');
+  recapAnimRunning = !recapAnimRunning;
+}
+
+const logicBlocksData = [
+  { id: 'if_x', text: 'IF the X position of the sprite is less than 0 (< 0)' },
+  { id: 'then_x', text: 'THEN the X position of the sprite becomes WIDTH' },
+  { id: 'if_y', text: 'IF the Y position of the sprite is less than 0 (< 0)' },
+  { id: 'then_y', text: 'THEN the Y position of the sprite becomes HEIGHT' }
+];
+
+let chosenLogicSlot1 = null;
+let chosenLogicSlot2 = null;
+
+function initRecapLogicBlocks() {
+  const pool = document.getElementById('logic-chip-pool');
+  if (!pool) return;
+  pool.innerHTML = '';
+  const shuffled = [...logicBlocksData].sort(() => Math.random() - 0.5);
+  shuffled.forEach(blk => {
+    const chip = document.createElement('div');
+    chip.className = 'logic-chip';
+    chip.dataset.id = blk.id;
+    chip.innerHTML = `<i class="fa-solid fa-cubes text-xs"></i> <span>${blk.text}</span>`;
+    chip.onclick = () => selectLogicBlock(blk, chip);
+    pool.appendChild(chip);
+  });
+}
+
+function selectLogicBlock(blk, chipEl) {
+  playSound('pop');
+  if (!chosenLogicSlot1) {
+    chosenLogicSlot1 = blk;
+    chipEl.classList.add('used');
+    const s1 = document.getElementById('logic-slot-1');
+    s1.className = 'logic-slot filled';
+    s1.innerHTML = `<span>1. ${blk.text}</span> <span class="text-alphagen-yellow text-xs">&times;</span>`;
+  } else if (!chosenLogicSlot2) {
+    chosenLogicSlot2 = blk;
+    chipEl.classList.add('used');
+    const s2 = document.getElementById('logic-slot-2');
+    s2.className = 'logic-slot filled';
+    s2.innerHTML = `<span>2. ${blk.text}</span> <span class="text-alphagen-yellow text-xs">&times;</span>`;
+  }
+}
+
+function clearLogicSlot(num) {
+  playSound('pop');
+  if (num === 1 && chosenLogicSlot1) {
+    const chip = document.querySelector(`.logic-chip[data-id="${chosenLogicSlot1.id}"]`);
+    if (chip) chip.classList.remove('used');
+    chosenLogicSlot1 = null;
+    const s1 = document.getElementById('logic-slot-1');
+    s1.className = 'logic-slot';
+    s1.innerHTML = '<span>1. Condition: Click a block below...</span> <span class="text-[10px] opacity-70">IF condition</span>';
+  } else if (num === 2 && chosenLogicSlot2) {
+    const chip = document.querySelector(`.logic-chip[data-id="${chosenLogicSlot2.id}"]`);
+    if (chip) chip.classList.remove('used');
+    chosenLogicSlot2 = null;
+    const s2 = document.getElementById('logic-slot-2');
+    s2.className = 'logic-slot';
+    s2.innerHTML = '<span>2. Action: Click a block below...</span> <span class="text-[10px] opacity-70">THEN action</span>';
+  }
+}
+
+function resetRecapLogic() {
+  chosenLogicSlot1 = null;
+  chosenLogicSlot2 = null;
+  clearLogicSlot(1);
+  clearLogicSlot(2);
+  const s1 = document.getElementById('logic-slot-1');
+  const s2 = document.getElementById('logic-slot-2');
+  s1.className = 'logic-slot';
+  s1.innerHTML = '<span>1. Condition: Click a block below...</span> <span class="text-[10px] opacity-70">IF condition</span>';
+  s2.className = 'logic-slot';
+  s2.innerHTML = '<span>2. Action: Click a block below...</span> <span class="text-[10px] opacity-70">THEN action</span>';
+  document.getElementById('recap-logic-fb').innerText = 'Select the IF condition first, then the THEN action!';
+  document.getElementById('recap-logic-fb').className = 'text-[11px] font-bold text-alphagen-purple text-center min-h-[16px]';
+  initRecapLogicBlocks();
+}
+
+function checkRecapLogic() {
+  const fb = document.getElementById('recap-logic-fb');
+  const s1 = document.getElementById('logic-slot-1');
+  const s2 = document.getElementById('logic-slot-2');
+
+  if (!chosenLogicSlot1 || !chosenLogicSlot2) {
+    playSound('wrong');
+    fb.innerText = 'Please fill both slots first!';
+    fb.className = 'text-[11px] font-bold text-alphagen-coral text-center min-h-[16px]';
+    return;
+  }
+
+  if (chosenLogicSlot1.id === 'if_x' && chosenLogicSlot2.id === 'then_x') {
+    s1.className = 'logic-slot filled-correct';
+    s2.className = 'logic-slot filled-correct';
+    fb.innerText = '🎉 Exact match! When X < 0 on the left edge, setting X = WIDTH wraps it back to the right!';
+    fb.className = 'text-[11px] font-bold text-emerald-700 text-center min-h-[16px]';
+    triggerSuccessConfetti();
+  } else {
+    s1.className = chosenLogicSlot1.id === 'if_x' ? 'logic-slot filled-correct' : 'logic-slot filled-wrong';
+    s2.className = chosenLogicSlot2.id === 'then_x' ? 'logic-slot filled-correct' : 'logic-slot filled-wrong';
+    playSound('wrong');
+    fb.innerText = 'Hint: Horizontal motion changes X (not Y), and the IF condition comes before THEN!';
+    fb.className = 'text-[11px] font-bold text-alphagen-coral text-center min-h-[16px]';
+  }
+}
+
+/* ================= SLIDE 4: REQUIRED VALUES FOR MOVEMENT ================= */
+let unlockedMoveReqs = { position: false, speed: false };
+
+function selectMoveReq(btn, type, isValid) {
+  if (isValid) {
+    playSound('correct');
+    btn.classList.add('selected-correct');
+    unlockedMoveReqs[type] = true;
+
+    if (type === 'position') {
+      document.getElementById('concept-reveal-pos').classList.remove('opacity-35');
+    } else if (type === 'speed') {
+      document.getElementById('concept-reveal-speed').classList.remove('opacity-35');
+    }
+
+    const count = (unlockedMoveReqs.position ? 1 : 0) + (unlockedMoveReqs.speed ? 1 : 0);
+    document.getElementById('move-code-badge').innerText = `${count} / 2 Revealed`;
+
+    if (count === 2) {
+      document.getElementById('move-req-fb').innerText = '🎉 Both Position and Speed unlocked! We use velocity_x, velocity_y, and move()!';
+      document.getElementById('move-req-fb').className = 'bg-emerald-50 border border-emerald-300 p-3 rounded-2xl text-xs font-bold text-emerald-800 text-center';
+    } else {
+      document.getElementById('move-req-fb').innerText = '✓ Great! Now select the second value needed to move a sprite.';
+    }
+  } else {
+    playSound('wrong');
+    btn.classList.add('selected-wrong');
+    document.getElementById('move-req-fb').innerText = 'Not needed for movement! Pick Position or Speed.';
+  }
+}
+
+/* ================= SLIDE 6: BRAINSTORMING REVEALS ================= */
+function revealBrainstorm(key, isCorrect, btn) {
+  const row = btn.parentElement;
+  row.querySelectorAll('.quiz-option').forEach(b => b.classList.remove('selected-correct', 'selected-wrong'));
+
+  if (isCorrect) {
+    playSound('correct');
+    btn.classList.add('selected-correct');
+    const info = document.getElementById(`bs-${key}-info`);
+    if (info) info.classList.remove('hidden');
+  } else {
+    playSound('wrong');
+    btn.classList.add('selected-wrong');
+  }
+}
+
+/* ================= SLIDE 7: CLOUD CODE EXPLAINER & LIVE SPEED ================= */
+const cloudExplanations = {
+  left: {
+    badge: 'Part 1: Horizontal Motion',
+    title: 'self.center_x -= 60 * delta_time',
+    desc: 'Subtracting from self.center_x moves the cloud smoothly from right to left across the sky every frame!'
+  },
+  wrap: {
+    badge: 'Part 2: Wrapping & Random Height',
+    title: 'if self.right < 0: self.left = WIDTH; self.center_y = random.randint(170, 210)',
+    desc: 'Once the right edge of the cloud passes 0 on the left, it teleports back to the right edge (WIDTH) at a new random sky height between 170 and 210.'
+  },
+  update: {
+    badge: 'Part 3: Game Loop Update',
+    title: '@window.event def on_update(delta_time): cloud.move(delta_time)',
+    desc: 'Arcade calls on_update(delta_time) automatically every frame (~60 times per second), passing delta_time into cloud.move() so the cloud keeps drifting!'
+  }
+};
+
+function explainCloudPart(key, el) {
+  playSound('pop');
+  document.querySelectorAll('#slide-7 .code-part-btn').forEach(b => b.classList.remove('active-part'));
+  if (el) el.classList.add('active-part');
+  const info = cloudExplanations[key];
+  if (info) {
+    document.getElementById('cloud-exp-badge').innerText = info.badge;
+    document.getElementById('cloud-exp-title').innerText = info.title;
+    document.getElementById('cloud-exp-desc').innerText = info.desc;
+  }
+}
+
+let simCloudSpeed = 60;
+let simCloudX = 500;
+let simCloudY = 190;
+
+function updateCloudSimSpeed() {
+  simCloudSpeed = parseInt(document.getElementById('cloud-speed-slider').value);
+  document.getElementById('cloud-speed-val').innerText = `${simCloudSpeed} px/s`;
+  document.getElementById('cloud-code-speed').innerText = simCloudSpeed;
+}
+
+/* ================= SLIDE 9: GROUND WRAP SIMULATION & CODE HIGHLIGHT ================= */
+let simGnd1Center = 350;
+let simGnd2Center = 1050;
+let gndWrapFlashTimer = 0;
+
+/* ================= SLIDE 11: OBSTACLE RESPAWN & SPRITELIST SIMULATION ================= */
+let simObsX = 750;
+let simObsIsBig = true;
+let obsFlashTimer = 0;
+
+/* ================= SLIDE 14: LEFT & RIGHT PRACTICE SIMULATION ================= */
+let lrDinoLogicalX = 350;
+let lrVelX = 0;
+
+function triggerLRSim(action) {
+  playSound('pop');
+  const cMove = document.getElementById('lr-code-move');
+  const cLeft = document.getElementById('lr-code-left');
+  const cRight = document.getElementById('lr-code-right');
+  const cRel = document.getElementById('lr-code-release');
+  const status = document.getElementById('lr-sim-status');
+
+  [cMove, cLeft, cRight, cRel].forEach(el => el && el.classList.remove('active-part'));
+
+  if (action === 'left') {
+    lrVelX = -200;
+    if (cLeft) cLeft.classList.add('active-part');
+    if (cMove) cMove.classList.add('active-part');
+    if (status) status.innerText = 'on_key_press: LEFT (velocity_x = -200)';
+  } else if (action === 'right') {
+    lrVelX = 200;
+    if (cRight) cRight.classList.add('active-part');
+    if (cMove) cMove.classList.add('active-part');
+    if (status) status.innerText = 'on_key_press: RIGHT (velocity_x = +200)';
+  } else {
+    lrVelX = 0;
+    if (cRel) cRel.classList.add('active-part');
+    if (status) status.innerText = 'on_key_release: velocity_x = 0';
+  }
+}
+
+/* ================= SLIDE 16: JUMP SIMULATION WITH CODE HIGHLIGHT ================= */
+let jmpSimActive = false;
+let jmpSimBottom = 50;
+let jmpSimVelY = 0;
+
+function triggerJumpSim() {
+  if (jmpSimActive) return;
+  playSound('pop');
+  jmpSimActive = true;
+  jmpSimVelY = 430;
+  highlightJumpCodeStage('launch');
+}
+
+function highlightJumpCodeStage(stage) {
+  ['init', 'launch', 'gravity', 'land'].forEach(k => {
+    const el = document.getElementById(`jmp-code-${k}`);
+    if (el) el.classList.remove('active-part');
+  });
+  const target = document.getElementById(`jmp-code-${stage}`);
+  if (target) target.classList.add('active-part');
+}
+
+/* ================= SLIDE 17: JUMP VALUE TUNER ================= */
+let tunerVel = 430;
+let tunerGrav = 1200;
+let tunerActive = false;
+let tunerBottom = 14;
+let tunerVelY = 0;
+
+function updateJumpTunerValues() {
+  tunerVel = parseInt(document.getElementById('tuner-vel-slider').value);
+  tunerGrav = parseInt(document.getElementById('tuner-grav-slider').value);
+  document.getElementById('tuner-vel-label').innerText = tunerVel;
+  document.getElementById('tuner-grav-label').innerText = tunerGrav;
+  document.getElementById('chk-vel-val').innerText = tunerVel;
+  document.getElementById('chk-grav-val').innerText = tunerGrav;
+}
+
+function resetJumpTuner() {
+  playSound('pop');
+  document.getElementById('tuner-vel-slider').value = 430;
+  document.getElementById('tuner-grav-slider').value = 1200;
+  updateJumpTunerValues();
+}
+
+function testTunerJump() {
+  if (tunerActive) return;
+  playSound('pop');
+  tunerActive = true;
+  tunerVelY = tunerVel;
+}
+
+/* ================= SLIDE 18: FINAL QUIZ ================= */
+function checkFinalQuiz(btn, isCorrect) {
+  const row = btn.parentElement;
+  row.querySelectorAll('.quiz-option').forEach(b => b.classList.remove('selected-correct', 'selected-wrong'));
+
+  if (isCorrect) {
+    btn.classList.add('selected-correct');
+    playSound('correct');
+  } else {
+    btn.classList.add('selected-wrong');
+    playSound('wrong');
+  }
+}
+
+/* ================= UNIFIED 30ms SIMULATION TICK ================= */
+setInterval(() => {
+  const dt = 0.03;
+
+  // Slide 2 Recap Sprite Animation
+  if (currentSlide === 2 && recapAnimRunning) {
+    recapSpriteX -= 6;
+    if (recapSpriteX < -30) {
+      recapSpriteX = 520;
+    }
+    const sp = document.getElementById('recap-moving-sprite');
+    const badge = document.getElementById('recap-pos-badge');
+    if (sp) sp.style.left = `${recapSpriteX}px`;
+    if (badge) {
+      const logicalX = Math.max(0, Math.round((recapSpriteX / 520) * 700));
+      badge.innerText = `x = ${logicalX}, y = 160`;
+    }
+  }
+
+  // Slide 5 delta_time Comparison
+  if (currentSlide === 5) {
+    const now = (Date.now() % 3000) / 3000;
+    const pos = 10 + Math.round(now * 460);
+    const f = document.getElementById('dt-runner-fast');
+    const s = document.getElementById('dt-runner-slow');
+    if (f) f.style.left = `${pos}px`;
+    if (s) s.style.left = `${pos}px`;
+  }
+
+  // Slide 7 Cloud Live Simulation
+  if (currentSlide === 7) {
+    simCloudX -= (simCloudSpeed * dt);
+    if (simCloudX < -45) {
+      simCloudX = 520;
+      simCloudY = Math.floor(Math.random() * 41) + 170;
+    }
+    const cloudEl = document.getElementById('sim-cloud-sprite');
+    const coordsEl = document.getElementById('cloud-live-coords');
+    const tagEl = document.getElementById('sim-cloud-tag');
+    if (cloudEl) {
+      cloudEl.style.left = `${Math.round(simCloudX)}px`;
+      const topPx = Math.round(36 - ((simCloudY - 170) / 40) * 24);
+      cloudEl.style.top = `${topPx}px`;
+    }
+    const logicalCloudX = Math.max(0, Math.round((simCloudX / 520) * 700));
+    if (coordsEl) coordsEl.innerText = `center_x: ${logicalCloudX} | center_y: ${simCloudY}`;
+    if (tagEl) tagEl.innerText = `y=${simCloudY}`;
+  }
+
+  // Slide 9 Ground Wrap Simulation + Code Highlight
+  if (currentSlide === 9) {
+    simGnd1Center -= 240 * dt;
+    simGnd2Center -= 240 * dt;
+
+    let wrappedNow = false;
+    if (simGnd1Center <= -350) {
+      simGnd1Center += 1400;
+      wrappedNow = true;
+    }
+    if (simGnd2Center <= -350) {
+      simGnd2Center += 1400;
+      wrappedNow = true;
+    }
+
+    if (wrappedNow) {
+      gndWrapFlashTimer = 18;
+    }
+
+    const codeMove = document.getElementById('gnd-code-move');
+    const codeIf = document.getElementById('gnd-code-if');
+    const badge = document.getElementById('gnd-state-badge');
+
+    if (gndWrapFlashTimer > 0) {
+      gndWrapFlashTimer--;
+      if (codeIf) codeIf.classList.add('active-part');
+      if (codeMove) codeMove.classList.remove('active-part');
+      if (badge) {
+        badge.innerText = 'center_x <= -350! Added WIDTH * 2 (+1400)';
+        badge.className = 'bg-slate-950 text-alphagen-yellow px-3 py-0.5 rounded-full border border-alphagen-yellow';
+      }
+    } else {
+      if (codeMove) codeMove.classList.add('active-part');
+      if (codeIf) codeIf.classList.remove('active-part');
+      if (badge) {
+        badge.innerText = 'Scrolling Left (center_x -= speed * delta_time)';
+        badge.className = 'bg-slate-950 text-emerald-400 px-3 py-0.5 rounded-full border border-slate-700';
+      }
+    }
+
+    // Map logical x (-350..1050) to viewport % (0%..100%, where 25%..75% is visible 0..700)
+    const g1LeftPct = 25 + ((simGnd1Center - 350) / 700) * 50;
+    const g2LeftPct = 25 + ((simGnd2Center - 350) / 700) * 50;
+
+    const g1El = document.getElementById('sim-gnd-1');
+    const g2El = document.getElementById('sim-gnd-2');
+    if (g1El) g1El.style.left = `${g1LeftPct}%`;
+    if (g2El) g2El.style.left = `${g2LeftPct}%`;
+
+    const g1Lbl = document.getElementById('sim-g1-label');
+    const g2Lbl = document.getElementById('sim-g2-label');
+    const codeVal = document.getElementById('gnd-code-val');
+    if (g1Lbl) g1Lbl.innerText = Math.round(simGnd1Center);
+    if (g2Lbl) g2Lbl.innerText = Math.round(simGnd2Center);
+    if (codeVal) codeVal.innerText = Math.round(simGnd1Center);
+  }
+
+  // Slide 11 Obstacle Respawn & SpriteList Simulation
+  if (currentSlide === 11) {
+    simObsX -= 240 * dt;
+    const cMove = document.getElementById('obs-code-move');
+    const cCheck = document.getElementById('obs-code-check');
+    const cRem = document.getElementById('obs-code-remove');
+    const cApp = document.getElementById('obs-code-append');
+    const status = document.getElementById('obs-sim-status');
+    const listVis = document.getElementById('obs-list-visual');
+
+    if (simObsX < 0) {
+      obsFlashTimer = 22;
+      simObsX = 740;
+      simObsIsBig = !simObsIsBig;
+    }
+
+    if (obsFlashTimer > 11) {
+      obsFlashTimer--;
+      [cMove, cCheck, cApp].forEach(e => e && e.classList.remove('active-part'));
+      if (cRem) cRem.classList.add('active-part');
+      if (status) status.innerText = 'obstacle.right < 0 -> Removed from list!';
+      if (listVis) {
+        listVis.innerHTML = '<span class="text-alphagen-coral font-bold italic">[] (Empty — removed old cactus)</span>';
+      }
+    } else if (obsFlashTimer > 0) {
+      obsFlashTimer--;
+      [cMove, cCheck, cRem].forEach(e => e && e.classList.remove('active-part'));
+      if (cApp) cApp.classList.add('active-part');
+      const imgName = simObsIsBig ? 'cacti-big.png' : 'cacti-small.png';
+      const icon = simObsIsBig ? '🌵🌵' : '🌵';
+      if (status) status.innerText = `Appended new Obstacle("${imgName}")!`;
+      if (listVis) {
+        listVis.innerHTML = `<span class="bg-alphagen-yellow/20 border border-alphagen-yellow text-alphagen-yellow px-3 py-1 rounded-lg font-bold flex items-center gap-1.5"><span>${icon}</span> <span>Obstacle("${imgName}")</span></span>`;
+      }
+    } else {
+      [cCheck, cRem, cApp].forEach(e => e && e.classList.remove('active-part'));
+      if (cMove) cMove.classList.add('active-part');
+      const imgName = simObsIsBig ? 'cacti-big.png' : 'cacti-small.png';
+      const icon = simObsIsBig ? '🌵🌵' : '🌵';
+      if (status) status.innerText = `Moving Left (x=${Math.round(simObsX)})`;
+      if (listVis) {
+        listVis.innerHTML = `<span class="bg-emerald-600/30 border border-emerald-500 text-emerald-200 px-3 py-1 rounded-lg font-bold flex items-center gap-1.5"><span>${icon}</span> <span>Obstacle("${imgName}")</span></span>`;
+      }
+    }
+
+    const obsEl = document.getElementById('sim-obs-sprite');
+    const obsTag = document.getElementById('sim-obs-tag');
+    const obsIcon = document.getElementById('sim-obs-icon');
+    if (obsEl) {
+      const px = Math.round((simObsX / 750) * 510);
+      obsEl.style.left = `${px}px`;
+    }
+    if (obsTag) obsTag.innerText = simObsIsBig ? 'cacti-big' : 'cacti-small';
+    if (obsIcon) obsIcon.innerText = simObsIsBig ? '🌵🌵' : '🌵';
+  }
+
+  // Slide 14 Left & Right Practice Movement
+  if (currentSlide === 14 && lrVelX !== 0) {
+    lrDinoLogicalX += lrVelX * dt;
+    if (lrDinoLogicalX < 30) lrDinoLogicalX = 30;
+    if (lrDinoLogicalX > 670) lrDinoLogicalX = 670;
+    const dEl = document.getElementById('lr-sim-dino');
+    const tag = document.getElementById('lr-dino-tag');
+    if (dEl) {
+      const px = Math.round((lrDinoLogicalX / 700) * 480);
+      dEl.style.left = `${px}px`;
+    }
+    if (tag) tag.innerText = `x=${Math.round(lrDinoLogicalX)}`;
+  }
+
+  // Slide 16 Jump Simulation Physics & Code Highlighting
+  if (currentSlide === 16 && jmpSimActive) {
+    jmpSimVelY -= 1200 * dt;
+    jmpSimBottom += jmpSimVelY * dt;
+
+    const dEl = document.getElementById('jmp-sim-dino');
+    const badge = document.getElementById('jmp-dino-badge');
+    const stateEl = document.getElementById('jmp-sim-state');
+
+    if (jmpSimVelY > 180) {
+      highlightJumpCodeStage('launch');
+    } else if (jmpSimBottom > 50) {
+      highlightJumpCodeStage('gravity');
+    }
+
+    if (jmpSimBottom <= 50) {
+      jmpSimBottom = 50;
+      jmpSimVelY = 0;
+      jmpSimActive = false;
+      highlightJumpCodeStage('land');
+      if (stateEl) {
+        stateEl.innerText = 'Landed! jumping = False';
+        stateEl.className = 'bg-slate-950 text-emerald-400 px-3 py-0.5 rounded-full border border-slate-700';
+      }
+    } else if (stateEl) {
+      stateEl.innerText = 'In Air! jumping = True';
+      stateEl.className = 'bg-slate-950 text-alphagen-yellow px-3 py-0.5 rounded-full border border-alphagen-yellow';
+    }
+
+    if (dEl) {
+      const bottomPx = 18 + Math.round((jmpSimBottom - 50) * 1.15);
+      dEl.style.bottom = `${bottomPx}px`;
+    }
+    if (badge) badge.innerText = `vel_y=${Math.round(jmpSimVelY)}`;
+  }
+
+  // Slide 17 Tuner Jump Physics
+  if (currentSlide === 17 && tunerActive) {
+    tunerVelY -= tunerGrav * dt;
+    tunerBottom += tunerVelY * dt * 0.65;
+    if (tunerBottom <= 14) {
+      tunerBottom = 14;
+      tunerVelY = 0;
+      tunerActive = false;
+    }
+    const td = document.getElementById('tuner-dino');
+    if (td) td.style.bottom = `${Math.round(tunerBottom)}px`;
+  }
+}, 30);
+
+/* Keyboard Listener */
+document.addEventListener('keydown', e => {
+  if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
+  if (e.key === 'ArrowRight') handleNextOrFinish();
+  if (e.key === 'ArrowLeft') prevSlide();
+});
+
+window.addEventListener('resize', fitStageToScreen);
+
+window.addEventListener('DOMContentLoaded', () => {
+  currentSlide = 1;
+  initHeaderDots();
+  updateSlideDisplay();
+  fitStageToScreen();
+  initRecapLogicBlocks();
+  updateJumpTunerValues();
+});
+</script>
+</body>
+</html>
